@@ -49,20 +49,54 @@ export function OrderForm({initialData, onSuccess, isDialog = false, isEditMode}
     const onSubmit = async (values: FormValues) => {
         const supabase = createClient()
 
+        const totalSlices = values.margherita + values.piccante + values.marinara
+        if (totalSlices === 0) {
+            toast({
+                title: "Error",
+                description: "At least one slice must be included in the order.",
+                variant: "destructive",
+            });
+            return;
+        }
         try {
-            const {error} = await supabase.from("orders").insert({
-                order_number: values.orderNumber,
-                slices_margherita: values.margherita,
-                slices_piccante: values.piccante,
-                slices_marinara: values.marinara,
-                status: values.status,
-            })
-            if (error) {
-                toast({
-                    title: "Error",
-                    description: `Failed to ${isEditMode ? "update" : "create"} the order.`,
-                    variant: "destructive",
-                })
+            if (isEditMode && initialData?.id) {
+                const result = await supabase.from("orders").update({
+                    order_number: values.orderNumber,
+                    slices_margherita: values.margherita,
+                    slices_piccante: values.piccante,
+                    slices_marinara: values.marinara,
+                    status: values.status,
+                }).eq("id", initialData.id);
+                const error = result.error;
+                if (error) {
+                    toast({
+                        title: "Error",
+                        description: error.message && error.message.includes("orders_order_number_key")
+                            ? "Order Number already exists!"
+                            : error.message || `Failed to ${isEditMode ? "update" : "create"} the order.`,
+                        variant: "destructive",
+                    });
+                    return;
+                }
+            } else {
+                const result = await supabase.from("orders").insert({
+                    order_number: values.orderNumber,
+                    slices_margherita: values.margherita,
+                    slices_piccante: values.piccante,
+                    slices_marinara: values.marinara,
+                    status: values.status,
+                });
+                const error = result.error;
+                if (error) {
+                    toast({
+                        title: "Error",
+                        description: error.message && error.message.includes("orders_order_number_key")
+                            ? "Order Number already exists!"
+                            : error.message || `Failed to ${isEditMode ? "update" : "create"} the order.`,
+                        variant: "destructive",
+                    });
+                    return;
+                }
             }
 
             toast({
@@ -76,10 +110,12 @@ export function OrderForm({initialData, onSuccess, isDialog = false, isEditMode}
                 router.push("/")
                 router.refresh()
             }
-        } catch (error) {
+        } catch (error: any) {
             toast({
                 title: "Error",
-                description: `Failed to ${isEditMode ? "update" : "create"} the order.`,
+                description: error?.message && error.message.includes("orders_order_number_key")
+                    ? "Order Number already exists!"
+                    : error?.message || `Failed to ${isEditMode ? "update" : "create"} the order.`,
                 variant: "destructive",
             })
         }

@@ -1,15 +1,15 @@
 "use client"
 
-import {useState, useEffect} from "react"
+import {useEffect, useState} from "react"
 import {
     type ColumnDef,
     type ColumnFiltersState,
-    type SortingState,
     flexRender,
     getCoreRowModel,
     getFilteredRowModel,
     getPaginationRowModel,
     getSortedRowModel,
+    type SortingState,
     useReactTable,
 } from "@tanstack/react-table"
 import {ArrowUpDown, Edit, Trash} from "lucide-react"
@@ -29,12 +29,10 @@ import {
     AlertDialogDescription,
     AlertDialogFooter,
     AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
+    AlertDialogTitle
 } from "@/components/ui/alert-dialog"
 import {OrderDialog} from "./order-dialog"
 import {CreateOrderButton} from "./create-order-button"
-
 
 export type Order = {
     id: string
@@ -47,13 +45,14 @@ export type Order = {
 
 export function PizzaOrderTable() {
     const {toast} = useToast()
-    const [sorting, setSorting] = useState<SortingState>([{ id: "orderNumber", desc: true }])
+    const [sorting, setSorting] = useState<SortingState>([{id: "orderNumber", desc: true}])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [data, setData] = useState<Order[]>([])
     const [loading, setLoading] = useState(true)
 
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [orderToEdit, setOrderToEdit] = useState<Order | null>(null)
+    const [orderToDelete, setOrderToDelete] = useState<Order | null>(null)
 
     const fetchOrders = async () => {
         const supabase = createClient()
@@ -85,13 +84,11 @@ export function PizzaOrderTable() {
     }, [])
 
     const handleDeleteOrder = async (order: Order) => {
-        console.debug("handleDeleteOrder triggered");
-        console.debug("Deleting order ID:", order.id);
         if (!order) return
 
         try {
             const supabase = createClient();
-            const { error } = await supabase.from("orders").delete().eq("id", order.id);
+            const {error} = await supabase.from("orders").delete().eq("id", order.id);
             if (error) {
                 toast({
                     title: "Error",
@@ -125,22 +122,26 @@ export function PizzaOrderTable() {
                     <ArrowUpDown className="ml-2 h-4 w-4"/>
                 </Button>
             ),
-            cell: ({row}) => <div className="text-center font-medium">{row.getValue("orderNumber")}</div>,
+            cell: ({row}) => <div
+                className="text-center font-medium text-sm sm:text-base">{row.getValue("orderNumber")}</div>,
         },
         {
             accessorKey: "margherita",
             header: "Margherita",
-            cell: ({row}) => <div className="text-center">{row.getValue("margherita")}</div>,
+            cell: ({row}) => <div
+                className="text-center font-medium text-sm sm:text-base">{row.getValue("margherita")}</div>,
         },
         {
             accessorKey: "piccante",
             header: "Piccante",
-            cell: ({row}) => <div className="text-center">{row.getValue("piccante")}</div>,
+            cell: ({row}) => <div
+                className="text-center font-medium text-sm sm:text-base">{row.getValue("piccante")}</div>,
         },
         {
             accessorKey: "marinara",
             header: "Marinara",
-            cell: ({row}) => <div className="text-center">{row.getValue("marinara")}</div>,
+            cell: ({row}) => <div
+                className="text-center font-medium text-sm sm:text-base">{row.getValue("marinara")}</div>,
         },
         {
             accessorKey: "status",
@@ -153,7 +154,7 @@ export function PizzaOrderTable() {
             cell: ({row}) => {
                 const status = row.getValue("status") as string
                 return (
-                    <div className="text-center">
+                    <div className="text-center font-medium text-sm sm:text-base">
                         <Badge variant={status === "OPEN" ? "default" : "secondary"}>{status}</Badge>
                     </div>
                 )
@@ -163,59 +164,38 @@ export function PizzaOrderTable() {
             },
         },
         {
-            id: "actions",
-            cell: ({ row }) => {
+            cell: ({row}) => {
                 const order = row.original;
                 const canDelete = order.status === "OPEN";
 
                 return (
-                    <div className="flex justify-end">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                                setOrderToEdit(order);
-                                setIsEditDialogOpen(true);
-                            }}
-                        >
-                            <Edit className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                        </Button>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    disabled={!canDelete}
-                                >
-                                    <Trash className="h-4 w-4" />
-                                    <span className="sr-only">Delete</span>
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This will permanently delete order {order.orderNumber}. This action cannot be undone.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                        className="bg-destructive text-destructive-foreground"
-                                        onClick={() => {
-                                            console.debug("Delete confirmed for order:", order.id);
-                                            handleDeleteOrder(order);
-                                        }}
-                                    >
-                                        Delete
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
+                    <div className="flex justify-end w-full sm:w-auto">
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                    setOrderToEdit(order);
+                                    setIsEditDialogOpen(true);
+                                }}
+                            >
+                                <Edit className="h-4 w-4"/>
+                                <span className="sr-only">Edit</span>
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={!canDelete}
+                                onClick={() => setOrderToDelete(order)}
+                            >
+                                <Trash className="h-4 w-4"/>
+                                <span className="sr-only">Delete</span>
+                            </Button>
+                        </div>
                     </div>
                 );
             },
+            id: "actions",
         },
     ]
 
@@ -228,22 +208,19 @@ export function PizzaOrderTable() {
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        state: {
-            sorting,
-            columnFilters,
-        },
+        state: {sorting, columnFilters},
     })
 
     return (
         <>
             {loading ? (
-                <div className="p-6 text-center">Loading orders...</div>
+                <div className="px-4 py-3 sm:p-6 text-centerr">Loading orders...</div>
             ) : (
                 <div>
-                    <div className="flex justify-end mb-4">
-                        <CreateOrderButton onOrderCreated={fetchOrders} />
+                    <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4 mb-4">
+                        <CreateOrderButton onOrderCreated={fetchOrders}/>
                     </div>
-                    <div className="flex items-center py-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 py-2 sm:py-4">
                         <Input
                             placeholder="Search Order Number..."
                             value={(table.getColumn("orderNumber")?.getFilterValue() as string) ?? ""}
@@ -252,11 +229,11 @@ export function PizzaOrderTable() {
                         />
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="ml-auto">
+                                <Button variant="outline" className="ml-0 sm:ml-auto w-full sm:w-auto">
                                     Status Filter
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent className="relative" align="end">
                                 <DropdownMenuItem onClick={() => table.getColumn("status")?.setFilterValue(undefined)}>
                                     All
                                 </DropdownMenuItem>
@@ -270,8 +247,8 @@ export function PizzaOrderTable() {
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
-                    <div className="rounded-md border">
-                        <Table>
+                    <div className="overflow-x-auto w-full rounded-md border">
+                        <Table className="min-w-[600px]">
                             <TableHeader>
                                 {table.getHeaderGroups().map((headerGroup) => (
                                     <TableRow key={headerGroup.id}>
@@ -285,13 +262,38 @@ export function PizzaOrderTable() {
                             </TableHeader>
                             <TableBody>
                                 {table.getRowModel().rows.length ? (
-                                    table.getRowModel().rows.map((row) => (
-                                        <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                                            {row.getVisibleCells().map((cell) => (
-                                                <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                                            ))}
+                                    <>
+                                        {table.getRowModel().rows.map((row) => (
+                                            <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                                                {row.getVisibleCells().map((cell) => (
+                                                    <TableCell
+                                                        key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                                                ))}
+                                            </TableRow>
+                                        ))}
+                                        <TableRow className="font-semibold bg-gray-600 border-t border-gray-300">
+                                            {table.getAllColumns().map((column, index) => {
+                                                const isMargherita = column.id === 'margherita';
+                                                const isPiccante = column.id === 'piccante';
+                                                const isMarinara = column.id === 'marinara';
+
+                                                const total = table.getRowModel().rows.reduce((sum, row) => {
+                                                    const value = row.getValue(column.id);
+                                                    return typeof value === 'number' ? sum + value : sum;
+                                                }, 0);
+
+                                                return (
+                                                    <TableCell className="text-center" key={column.id}>
+                                                        {index === 0
+                                                            ? `Total Orders (${table.getRowModel().rows.length})`
+                                                            : isMargherita || isPiccante || isMarinara
+                                                                ? total
+                                                                : ""}
+                                                    </TableCell>
+                                                );
+                                            })}
                                         </TableRow>
-                                    ))
+                                    </>
                                 ) : (
                                     <TableRow>
                                         <TableCell colSpan={columns.length} className="h-24 text-center">
@@ -303,11 +305,13 @@ export function PizzaOrderTable() {
                         </Table>
                     </div>
                     <div className="flex items-center justify-end space-x-2 py-4">
-                        <Button variant="outline" size="sm" onClick={() => table.previousPage()}
+                        <Button variant="outline" className="ml-0 sm:ml-auto w-full sm:w-auto" size="sm"
+                                onClick={() => table.previousPage()}
                                 disabled={!table.getCanPreviousPage()}>
                             Previous
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => table.nextPage()}
+                        <Button variant="outline" className="ml-0 sm:ml-auto w-full sm:w-auto" size="sm"
+                                onClick={() => table.nextPage()}
                                 disabled={!table.getCanNextPage()}>
                             Next
                         </Button>
@@ -326,6 +330,31 @@ export function PizzaOrderTable() {
                             title={`Edit Order #${orderToEdit.orderNumber}`}
                             isEditMode={true}
                         />
+                    )}
+                    {orderToDelete && (
+                        <AlertDialog open={!!orderToDelete} onOpenChange={(open) => !open && setOrderToDelete(null)}>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will permanently delete order {orderToDelete.orderNumber}. This action
+                                        cannot be undone.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        className="text-xs sm:text-sm px-2 py-1 bg-destructive text-destructive-foreground"
+                                        onClick={() => {
+                                            handleDeleteOrder(orderToDelete)
+                                            setOrderToDelete(null)
+                                        }}
+                                    >
+                                        Delete
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     )}
                 </div>
             )}
