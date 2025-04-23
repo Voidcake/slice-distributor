@@ -1,12 +1,19 @@
 import {PizzaOrderTable} from "./components/pizza-order-table"
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
+import type React from "react";
 
 export default function POS() {
     return (
         <div className="container mx-auto py-10">
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold mb-4">Pizza POS</h1>
-            </div>
-            <PizzaOrderTable/>
+            <Card className="mb-6">
+                <CardHeader className="bg-blue-900">
+                    <CardTitle className="text-2xl">Pizza POS</CardTitle>
+                    <CardDescription className="text-l">Manage Pizza Orders</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                    <PizzaOrderTable/>
+                </CardContent>
+            </Card>
         </div>
     )
 }

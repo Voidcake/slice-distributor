@@ -15,8 +15,8 @@ import {useToast} from "@/hooks/use-toast"
 
 
 export default function ReheatStation() {
-    const [inputOrderNumber, setInputOrderNumber] = useState("")
-    const [startOrderNumber, setStartOrderNumber] = useState<string | null>("001")
+    const [inputOrderNumber, setInputOrderNumber] = useState("001")
+    const [startOrderNumber, setStartOrderNumber] = useState<string | null>("")
     const [isInfoOpen, setIsInfoOpen] = useState(false)
 
     const {toast} = useToast()

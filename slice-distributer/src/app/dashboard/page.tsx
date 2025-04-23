@@ -9,7 +9,7 @@ export default async function dashboard() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mt-6 w-full sm:w-auto items-center">
                 <Link href="/POS">
-                    <button className="w-full sm:w-auto px-4 py-2 bg-green-500 text-white rounded hover:bg-green-700">
+                    <button className="w-full sm:w-auto px-4 py-2 bg-blue-900 text-white rounded hover:bg-blue-950">
                         POS/Cashier
                     </button>
                 </Link>

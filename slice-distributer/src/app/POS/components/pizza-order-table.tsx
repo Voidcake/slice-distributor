@@ -1,6 +1,6 @@
 "use client"
 
-import {useEffect, useState} from "react"
+import {useEffect, useMemo, useState} from "react"
 import {
     type ColumnDef,
     type ColumnFiltersState,
@@ -12,9 +12,9 @@ import {
     type SortingState,
     useReactTable,
 } from "@tanstack/react-table"
-import {ArrowUpDown, Edit, Trash} from "lucide-react"
+import {ArrowUpDown, Edit, InfoIcon, Trash} from "lucide-react"
 import {createClient} from "@/utils/supabase/client"
-
+import {Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger} from "@/components/ui/sheet"
 import {Button} from "@/components/ui/button"
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu"
 import {Input} from "@/components/ui/input"
@@ -45,17 +45,107 @@ export type Order = {
 
 export function PizzaOrderTable() {
     const {toast} = useToast()
-    const [sorting, setSorting] = useState<SortingState>([{id: "orderNumber", desc: true}])
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+    const [sorting, setSorting] = useState<SortingState>(() => {
+        const stored = localStorage.getItem('sortingState')
+        return stored ? JSON.parse(stored) : [{id: "orderNumber", desc: true}]
+    })
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
+        const stored = localStorage.getItem('columnFiltersState')
+        return stored ? JSON.parse(stored) : []
+    })
+    const [isInfoOpen, setIsInfoOpen] = useState(false)
+
     const [data, setData] = useState<Order[]>([])
     const [loading, setLoading] = useState(true)
+
+    const supabase = useMemo(() => createClient(), []);
 
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [orderToEdit, setOrderToEdit] = useState<Order | null>(null)
     const [orderToDelete, setOrderToDelete] = useState<Order | null>(null)
 
+    // Persist sorting state
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            localStorage.setItem('sortingState', JSON.stringify(sorting))
+        }
+    }, [sorting])
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            localStorage.setItem('columnFiltersState', JSON.stringify(columnFilters))
+        }
+    }, [columnFilters])
+
+    const ordersInfo = useMemo(() => {
+        const info: Record<"OPEN" | "PROCESSED", {
+            totalByType: Record<"margherita" | "piccante" | "marinara", number>
+            totalSlices: number
+        }> = {
+            OPEN: {totalByType: {margherita: 0, piccante: 0, marinara: 0}, totalSlices: 0},
+            PROCESSED: {totalByType: {margherita: 0, piccante: 0, marinara: 0}, totalSlices: 0},
+        }
+        data.forEach(order => {
+            const bucket = info[order.status]
+            ;(Object.keys(bucket.totalByType) as Array<keyof typeof bucket.totalByType>)
+                .forEach(type => {
+                    const count = order[type] as number
+                    bucket.totalByType[type] += count
+                    bucket.totalSlices += count
+                })
+        })
+        return info
+    }, [data])
+
+    useEffect(() => {
+        // ❶ subscribe to every INSERT / UPDATE / DELETE on public.orders
+        const channel = supabase
+            .channel('orders-realtime')
+            .on(
+                'postgres_changes',
+                {event: '*', schema: 'public', table: 'orders'},
+                (payload) => {
+                    // easy mode ─ just pull fresh data
+                    fetchOrders();
+
+                    /* pro mode – patch local state without a round-trip
+                    setData((prev) => {
+                      const map = (row: any): Order => ({
+                        id: row.id,
+                        orderNumber: row.order_number,
+                        margherita: row.slices_margherita,
+                        piccante: row.slices_piccante,
+                        marinara: row.slices_marinara,
+                        status: row.status,
+                      });
+
+                      switch (payload.eventType) {
+                        case 'INSERT':
+                          return [...prev, map(payload.new)];
+                        case 'UPDATE':
+                          return prev.map((o) =>
+                            o.id === payload.new.id ? map(payload.new) : o
+                          );
+                        case 'DELETE':
+                          return prev.filter((o) => o.id !== payload.old.id);
+                        default:
+                          return prev;
+                      }
+                    });
+                    */
+                }
+            )
+            .subscribe();
+
+        // ❷ tidy up when the component unmounts
+        return () => {
+            supabase.removeChannel(channel);          // v2 API  [oai_citation:1‡Supabase](https://supabase.com/docs/reference/javascript/removechannel?utm_source=chatgpt.com)
+            // or: channel.unsubscribe();
+        };
+    }, [supabase]);
+
+
     const fetchOrders = async () => {
-        const supabase = createClient()
         const {data: orders, error} = await supabase.from("orders").select("*")
 
         if (error) {
@@ -87,7 +177,6 @@ export function PizzaOrderTable() {
         if (!order) return
 
         try {
-            const supabase = createClient();
             const {error} = await supabase.from("orders").delete().eq("id", order.id);
             if (error) {
                 toast({
@@ -218,6 +307,73 @@ export function PizzaOrderTable() {
             ) : (
                 <div>
                     <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4 mb-4">
+                        <Sheet open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+                            <SheetTrigger asChild>
+                                <Button variant="secondary">
+                                    <InfoIcon className="mr-2 h-4 w-4"/>
+                                    Orders Info
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent className="w-[400px] sm:w-[540px]">
+                                <SheetHeader>
+                                    <SheetTitle>Orders Overview</SheetTitle>
+                                    <SheetDescription>Total slices by status</SheetDescription>
+                                </SheetHeader>
+
+                                <div className="mt-6 space-y-12">
+                                    {(["OPEN", "PROCESSED"] as const).map((status) => (
+                                        <div
+                                            key={status}
+                                            className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm space-y-6"
+                                        >
+                                            <h3 className="font-semibold text-lg capitalize">
+                                                {status.toLowerCase()} orders
+                                            </h3>
+
+                                            {/* Per-type breakdown */}
+                                            <div className="space-y-4">
+                                                {Object.entries(ordersInfo[status].totalByType).map(
+                                                    ([type, count]) => (
+                                                        <div
+                                                            key={type}
+                                                            className="flex flex-col sm:flex-row justify-between items-start sm:items-center"
+                                                        >
+                                                            <span className="capitalize font-medium">{type}</span>
+                                                            <div className="text-sm font-medium text-right">
+                                                                {count} slices
+                                                                <br/>
+                                                                {`${Math.floor(count / 8)} Full Pizzas${
+                                                                    count % 8 ? ` + ${count % 8} Slices` : ""
+                                                                }`}
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+
+                                            {/* Overall total */}
+                                            <div
+                                                className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-1"
+                                            >
+                                                <div className="flex justify-between font-medium">
+                                                    <span>Total Slices:</span>
+                                                    <span>{ordersInfo[status].totalSlices}</span>
+                                                </div>
+                                                <div className="text-sm font-medium text-right">
+                                                    {`${Math.floor(
+                                                        ordersInfo[status].totalSlices / 8
+                                                    )} Full Pizzas${
+                                                        ordersInfo[status].totalSlices % 8
+                                                            ? ` + ${ordersInfo[status].totalSlices % 8} Slices`
+                                                            : ""
+                                                    }`}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </SheetContent>
+                        </Sheet>
                         <CreateOrderButton onOrderCreated={fetchOrders}/>
                     </div>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 py-2 sm:py-4">
