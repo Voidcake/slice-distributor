@@ -45,14 +45,8 @@ export type Order = {
 
 export function PizzaOrderTable() {
     const {toast} = useToast()
-    const [sorting, setSorting] = useState<SortingState>(() => {
-        const stored = localStorage.getItem('sortingState')
-        return stored ? JSON.parse(stored) : [{id: "orderNumber", desc: true}]
-    })
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
-        const stored = localStorage.getItem('columnFiltersState')
-        return stored ? JSON.parse(stored) : []
-    })
+    const [sorting, setSorting] = useState<SortingState>([{ id: "orderNumber", desc: true }]);
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [isInfoOpen, setIsInfoOpen] = useState(false)
 
     const [data, setData] = useState<Order[]>([])
@@ -64,6 +58,20 @@ export function PizzaOrderTable() {
     const [orderToEdit, setOrderToEdit] = useState<Order | null>(null)
     const [orderToDelete, setOrderToDelete] = useState<Order | null>(null)
 
+    // Retrieve persisted state on mount.
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const storedSorting = localStorage.getItem('sortingState')
+            if (storedSorting) {
+                setSorting(JSON.parse(storedSorting))
+            }
+            const storedFilters = localStorage.getItem('columnFiltersState')
+            if (storedFilters) {
+                setColumnFilters(JSON.parse(storedFilters))
+            }
+        }
+    }, [])
+
     // Persist sorting state
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -71,6 +79,7 @@ export function PizzaOrderTable() {
         }
     }, [sorting])
 
+    // Persist filters state
     useEffect(() => {
         if (typeof window !== "undefined") {
             localStorage.setItem('columnFiltersState', JSON.stringify(columnFilters))
@@ -314,7 +323,7 @@ export function PizzaOrderTable() {
                                     Orders Info
                                 </Button>
                             </SheetTrigger>
-                            <SheetContent className="w-[400px] sm:w-[540px]">
+                            <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
                                 <SheetHeader>
                                     <SheetTitle>Orders Overview</SheetTitle>
                                     <SheetDescription>Total slices by status</SheetDescription>
@@ -378,6 +387,8 @@ export function PizzaOrderTable() {
                     </div>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 py-2 sm:py-4">
                         <Input
+                            type="text"
+                            inputMode="numeric"
                             placeholder="Search Order Number..."
                             value={(table.getColumn("orderNumber")?.getFilterValue() as string) ?? ""}
                             onChange={(event) => table.getColumn("orderNumber")?.setFilterValue(event.target.value)}
@@ -427,28 +438,6 @@ export function PizzaOrderTable() {
                                                 ))}
                                             </TableRow>
                                         ))}
-                                        <TableRow className="font-semibold bg-gray-600 border-t border-gray-300">
-                                            {table.getAllColumns().map((column, index) => {
-                                                const isMargherita = column.id === 'margherita';
-                                                const isPiccante = column.id === 'piccante';
-                                                const isMarinara = column.id === 'marinara';
-
-                                                const total = table.getRowModel().rows.reduce((sum, row) => {
-                                                    const value = row.getValue(column.id);
-                                                    return typeof value === 'number' ? sum + value : sum;
-                                                }, 0);
-
-                                                return (
-                                                    <TableCell className="text-center" key={column.id}>
-                                                        {index === 0
-                                                            ? `Total Orders (${table.getRowModel().rows.length})`
-                                                            : isMargherita || isPiccante || isMarinara
-                                                                ? total
-                                                                : ""}
-                                                    </TableCell>
-                                                );
-                                            })}
-                                        </TableRow>
                                     </>
                                 ) : (
                                     <TableRow>

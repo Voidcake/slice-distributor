@@ -165,7 +165,7 @@ export function OrderForm({initialData, onSuccess, isDialog = false, isEditMode}
                         <FormItem>
                             <FormLabel>Order Number</FormLabel>
                             <FormControl>
-                                <Input {...field} placeholder="Enter a unique order number"/>
+                                <Input {...field} placeholder="Enter a unique order number" type="text" inputMode="numeric" />
                             </FormControl>
                             <FormDescription>This must be a unique order number.</FormDescription>
                             <FormMessage/>

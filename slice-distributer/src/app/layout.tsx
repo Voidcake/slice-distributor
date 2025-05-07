@@ -8,6 +8,7 @@ import Link from "next/link";
 import DynamicBreadcrumb from "@/components/ui/dynamic-breadcrumb";
 import "./globals.css";
 import {Toaster} from "@/components/ui/toaster";
+import Logo from "@/components/logo";
 
 
 const defaultUrl = process.env.VERCEL_URL
@@ -45,6 +46,7 @@ export default function RootLayout({
                     <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
                         <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
                             <div className="flex gap-5 items-center font-semibold">
+                                <Link href={"/dashboard"}> <Logo/> </Link>
                                 <Link href={"/dashboard"}>Slice Distributer</Link>
                             </div>
                             <div className="w-full max-w-5xl flex justify-end items-center gap-4 p-3 px-5 text-sm">

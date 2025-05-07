@@ -40,7 +40,7 @@ export default function ReheatStation() {
 
     const handleStartBatch = () => {
         if (inputOrderNumber) {
-            setStartOrderNumber(inputOrderNumber)
+            setStartOrderNumber(inputOrderNumber.padStart(3, "0"))
             toast({
                 title: "Started Reheating",
                 description: `Loading batch starting from order #${inputOrderNumber}`,
@@ -71,7 +71,7 @@ export default function ReheatStation() {
     return (
         <div className="container mx-auto p-4 max-w-6xl">
             <Card className="mb-6">
-                <CardHeader className="bg-orange-400">
+                <CardHeader className="bg-red-500 bg-opacity-75 rounded-xl">
                     <CardTitle className="text-2xl">Pizza Reheat Station</CardTitle>
                     <CardDescription className="text-l">Manage pizza batches for reheating</CardDescription>
                 </CardHeader>
@@ -80,6 +80,7 @@ export default function ReheatStation() {
                         <div className="flex gap-2">
                             <Input
                                 type="text"
+                                inputMode="numeric"
                                 placeholder="Start Order #"
                                 value={inputOrderNumber}
                                 onChange={handleStartNumberChange}

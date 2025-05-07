@@ -281,9 +281,10 @@ export function useOrders(startOrderNumber: string | null) {
         /* build next batch from fresh OPEN orders */
         const openAfterProcess = orders.map(o =>
             currentBatch?.orderNumbers.includes(o.orderNumber)
-                ? {...o, status: "PROCESSED"}
+                ? {...o, status: "PROCESSED" as "PROCESSED"}
                 : o,
         )
+
         const next = createBatch(0, openAfterProcess)
 
         if (next) {
