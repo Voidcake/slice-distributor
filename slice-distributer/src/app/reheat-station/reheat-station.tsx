@@ -3,11 +3,20 @@
 import type React from "react"
 import {useState} from "react"
 import {Button} from "@/components/ui/button"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from "@/components/ui/dialog"
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
 import {Input} from "@/components/ui/input"
 import {Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger} from "@/components/ui/sheet"
 import {Badge} from "@/components/ui/badge"
-import {ArrowLeftIcon, ArrowRightIcon, InfoIcon} from "lucide-react"
+import {ArrowLeftIcon, ArrowRightIcon, InfoIcon, RefreshCwIcon} from "lucide-react"
 import {PizzaChart} from "./components/pizza-chart"
 import {useOrders} from "./hooks/use-orders"
 import {PizzaLegend} from "./components/pizza-legend"
@@ -18,6 +27,8 @@ export default function ReheatStation() {
     const [inputOrderNumber, setInputOrderNumber] = useState("001")
     const [startOrderNumber, setStartOrderNumber] = useState<string | null>("")
     const [isInfoOpen, setIsInfoOpen] = useState(false)
+    const [isResetDialogOpen, setIsResetDialogOpen] = useState(false)
+
 
     const {toast} = useToast()
 
@@ -45,6 +56,12 @@ export default function ReheatStation() {
                 title: "Started Reheating",
                 description: `Loading batch starting from order #${inputOrderNumber}`,
             })
+        } else {
+            toast({
+                title: "Invalid Order Number",
+                description: "Please enter a valid order number to start reheating.",
+                variant: "destructive",
+            })
         }
     }
 
@@ -68,6 +85,25 @@ export default function ReheatStation() {
         }
     }
 
+    const handleResetConfirmation = () => {
+        ["reheat_currentBatch", "reheat_previousBatch", "reheat_batchHistory"].forEach(key =>
+            localStorage.removeItem(key)
+        )
+
+        setStartOrderNumber(null)
+
+        setTimeout(() => {
+            handleStartBatch();
+        }, 5)
+
+        setIsResetDialogOpen(false)
+
+        toast({
+            title: "Reheat Station Reset",
+            description: "All batch data has been cleared.",
+        })
+    }
+
     return (
         <div className="container mx-auto p-4 max-w-6xl">
             <Card className="mb-6">
@@ -76,66 +112,99 @@ export default function ReheatStation() {
                     <CardDescription className="text-l">Manage pizza batches for reheating</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
-                    <div className="flex flex-col md:flex-row gap-4 mb-6">
-                        <div className="flex gap-2">
-                            <Input
-                                type="text"
-                                inputMode="numeric"
-                                placeholder="Start Order #"
-                                value={inputOrderNumber}
-                                onChange={handleStartNumberChange}
-                                className="w-32"
-                            />
-                            <Button onClick={handleStartBatch}>Start</Button>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button variant="outline" onClick={handlePreviousBatch}
-                                    disabled={!hasPreviousBatch || currentBatch?.orderNumbers.includes("001")}>
-                                <ArrowLeftIcon className="mr-2 h-4 w-4"/>
-                                Previous Batch
-                            </Button>
-                            <Button onClick={handleNextBatch} disabled={isLoading}>
-                                Next Batch
-                                <ArrowRightIcon className="ml-2 h-4 w-4"/>
-                            </Button>
-                        </div>
-                        <Sheet open={isInfoOpen} onOpenChange={setIsInfoOpen}>
-                            <SheetTrigger asChild>
-                                <Button variant="secondary">
-                                    <InfoIcon className="mr-2 h-4 w-4"/>
-                                    Open Orders Info
+                    <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
+                        <div className="grid grid-cols-3 items-center mb-1">
+                            <div className="flex gap-2">
+                                <Input
+                                    type="text"
+                                    inputMode="numeric"
+                                    placeholder="Start Order #"
+                                    value={inputOrderNumber}
+                                    onChange={handleStartNumberChange}
+                                    className="w-32"
+                                />
+                                <Button onClick={handleStartBatch}>Start</Button>
+                            </div>
+
+                            <div className="flex justify-center gap-2">
+                                <Button variant="outline" onClick={handlePreviousBatch}
+                                        disabled={!hasPreviousBatch || currentBatch?.orderNumbers.includes("001")}>
+                                    <ArrowLeftIcon className="mr-2 h-4 w-4" />
+                                    Previous Batch
                                 </Button>
-                            </SheetTrigger>
-                            <SheetContent className="w-[400px] sm:w-[540px]">
-                                <SheetHeader>
-                                    <SheetTitle>All Open Orders Overview</SheetTitle>
-                                    <SheetDescription>Total slice counts for all *open* orders</SheetDescription>
-                                </SheetHeader>
-                                <div className="mt-6">
-                                    {allOpenOrdersInfo && (
-                                        <div className="space-y-6">
-                                            {Object.entries(allOpenOrdersInfo.totalByType).map(([type, count]) => (
-                                                <div key={type} className="space-y-2">
-                                                    <div className="flex justify-between items-center">
-                                                        <h3 className="font-medium">{type.charAt(0).toUpperCase() + type.slice(1)}</h3>
-                                                        <Badge variant="outline">{count} slices</Badge>
-                                                    </div>
-                                                    <div className="text-sm font-medium text-right">
-                                                        {`${Math.floor(count / 8)} Pizzas${count % 8 ? ` + ${count % 8} Slices` : ""}`}
+                                <Button onClick={handleNextBatch} disabled={isLoading}>
+                                    Next Batch
+                                    <ArrowRightIcon className="ml-2 h-4 w-4" />
+                                </Button>
+                            </div>
+
+                            <div className="flex justify-end">
+                                <Sheet open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+                                    <SheetTrigger asChild>
+                                        <Button variant="secondary">
+                                            <InfoIcon className="mr-2 h-4 w-4"/>
+                                            Open Orders Info
+                                        </Button>
+                                    </SheetTrigger>
+                                    <SheetContent className="w-[400px] sm:w-[540px]">
+                                        <SheetHeader>
+                                            <SheetTitle>All Open Orders Overview</SheetTitle>
+                                            <SheetDescription>Total slice counts for all *open* orders</SheetDescription>
+                                        </SheetHeader>
+                                        <div className="mt-6">
+                                            {allOpenOrdersInfo && (
+                                                <div className="space-y-6">
+                                                    {Object.entries(allOpenOrdersInfo.totalByType).map(([type, count]) => (
+                                                        <div key={type} className="space-y-2">
+                                                            <div className="flex justify-between items-center">
+                                                                <h3 className="font-medium">{type.charAt(0).toUpperCase() + type.slice(1)}</h3>
+                                                                <Badge variant="outline">{count} slices</Badge>
+                                                            </div>
+                                                            <div className="text-sm font-medium text-right">
+                                                                {`${Math.floor(count / 8)} Pizzas${count % 8 ? ` + ${count % 8} Slices` : ""}`}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    <div className="pt-4 border-t">
+                                                        <div className="flex justify-between font-medium">
+                                                            <span>Total Slices:</span>
+                                                            <span>{allOpenOrdersInfo.totalSlices}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            ))}
-                                            <div className="pt-4 border-t">
-                                                <div className="flex justify-between font-medium">
-                                                    <span>Total Slices:</span>
-                                                    <span>{allOpenOrdersInfo.totalSlices}</span>
-                                                </div>
-                                            </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                            </SheetContent>
-                        </Sheet>
+                                        <div className="pt-6 border-t mt-6">
+                                            <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="destructive" disabled={isLoading} className="w-full">
+                                                        <RefreshCwIcon className="mr-2 h-4 w-4" />
+                                                        Reset Reheat Station
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogHeader>
+                                                        <DialogTitle>Reset Station</DialogTitle>
+                                                        <DialogDescription>
+                                                            Are you sure you want to reset the station? This will clear all
+                                                            batch data and set the status of all Orders to OPEN.
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <DialogFooter>
+                                                        <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>
+                                                            Cancel
+                                                        </Button>
+                                                        <Button variant="destructive" onClick={handleResetConfirmation}>
+                                                            Confirm
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
+                                        </div>
+                                    </SheetContent>
+                                </Sheet>
+                            </div>
+                        </div>
                     </div>
 
                     {currentBatch ? (

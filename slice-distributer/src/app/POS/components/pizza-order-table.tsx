@@ -45,9 +45,10 @@ export type Order = {
 
 export function PizzaOrderTable() {
     const {toast} = useToast()
-    const [sorting, setSorting] = useState<SortingState>([{ id: "orderNumber", desc: true }]);
+    const [sorting, setSorting] = useState<SortingState>([{id: "orderNumber", desc: true}]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [isInfoOpen, setIsInfoOpen] = useState(false)
+    const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false)
 
     const [data, setData] = useState<Order[]>([])
     const [loading, setLoading] = useState(true)
@@ -106,8 +107,8 @@ export function PizzaOrderTable() {
         return info
     }, [data])
 
+    // ❶ subscribe to every INSERT / UPDATE / DELETE on public.orders
     useEffect(() => {
-        // ❶ subscribe to every INSERT / UPDATE / DELETE on public.orders
         const channel = supabase
             .channel('orders-realtime')
             .on(
@@ -207,6 +208,38 @@ export function PizzaOrderTable() {
                 variant: "destructive",
             })
         } finally {
+            await fetchOrders()
+        }
+    }
+
+    const handleDeleteAllOrders = async () => {
+        try {
+            const {error} = await supabase
+                .from("orders")
+                .delete()
+                .not("id", "is", null);
+
+            if (error) {
+                console.error(error)
+                toast({
+                    title: "Error",
+                    description: "Failed to delete all orders from the database.",
+                    variant: "destructive",
+                });
+                return;
+            }
+            toast({
+                title: "All orders deleted",
+                description: "All orders have been successfully deleted.",
+            })
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to delete all orders.",
+                variant: "destructive",
+            })
+        } finally {
+            setIsDeleteAllDialogOpen(false)
             await fetchOrders()
         }
     }
@@ -381,9 +414,15 @@ export function PizzaOrderTable() {
                                         </div>
                                     ))}
                                 </div>
+                                <div className="mt-4 flex justify-end">
+                                    <Button variant="destructive" onClick={() => setIsDeleteAllDialogOpen(true)}>
+                                        Delete All Orders
+                                    </Button>
+                                </div>
                             </SheetContent>
                         </Sheet>
                         <CreateOrderButton onOrderCreated={fetchOrders}/>
+
                     </div>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 py-2 sm:py-4">
                         <Input
@@ -501,6 +540,26 @@ export function PizzaOrderTable() {
                             </AlertDialogContent>
                         </AlertDialog>
                     )}
+                    <AlertDialog open={isDeleteAllDialogOpen}
+                                 onOpenChange={(open) => !open && setIsDeleteAllDialogOpen(false)}>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will permanently delete all orders. This action cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    className="text-xs sm:text-sm px-2 py-1 bg-destructive text-destructive-foreground"
+                                    onClick={handleDeleteAllOrders}
+                                >
+                                    Delete All
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             )}
         </>

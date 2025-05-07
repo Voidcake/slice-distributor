@@ -235,7 +235,7 @@ export function useOrders(startOrderNumber: string | null) {
         }
 
         fetchOrders()
-    }, [startOrderNumber, initialStart])          //  ← no createBatch here
+    }, [startOrderNumber, initialStart])
 
     //Persist batches whenever they change
     useEffect(() => {
@@ -246,56 +246,71 @@ export function useOrders(startOrderNumber: string | null) {
 
     // Next / Previous batch functions
     const loadNextBatch = useCallback(async () => {
-        setIsLoading(true)
-        const supabase = createClient()
+      setIsLoading(true)
+      const supabase = createClient()
 
-        /* if we already have a current batch, finalise it first */
-        if (currentBatch) {
-            setPreviousBatch(currentBatch)
-            setBatchHistory(prev => [...prev, currentBatch])
+      // 1. Finalize current batch on the server
+      if (currentBatch) {
+        setPreviousBatch(currentBatch)
+        setBatchHistory(prev => [...prev, currentBatch])
 
-            const {error} = await supabase
-                .from("orders")
-                .update({status: "PROCESSED"})
-                .in("order_number", currentBatch.orderNumbers)
+        const { error: updateError } = await supabase
+          .from("orders")
+          .update({ status: "PROCESSED" })
+          .in("order_number", currentBatch.orderNumbers)
 
-            if (error) {
-                toast({
-                    title: "Error",
-                    description: "Error updating order status: " + error.message,
-                    variant: "destructive",
-                })
-                setIsLoading(false)
-                return
-            }
-
-            setOrders(prev =>
-                prev.map(o =>
-                    currentBatch.orderNumbers.includes(o.orderNumber)
-                        ? {...o, status: "PROCESSED"}
-                        : o,
-                ),
-            )
+        if (updateError) {
+          toast({
+            title: "Error",
+            description: "Error updating order status: " + updateError.message,
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          return
         }
+      }
 
-        /* build next batch from fresh OPEN orders */
-        const openAfterProcess = orders.map(o =>
-            currentBatch?.orderNumbers.includes(o.orderNumber)
-                ? {...o, status: "PROCESSED" as "PROCESSED"}
-                : o,
-        )
+      // 2. Re-fetch all orders >= the effective start so we pick up new ones
+      const effectiveStart = prevStartOrderRef.current ?? ""
+      const { data, error: fetchError } = await supabase
+        .from("orders")
+        .select("*")
+        .gte("order_number", effectiveStart)
+        .order("order_number", { ascending: true })
 
-        const next = createBatch(0, openAfterProcess)
-
-        if (next) {
-            const openOrders = openAfterProcess.filter(o => o.status === "OPEN")
-            const last = next.orders[next.orders.length - 1]
-            const idx = openOrders.findIndex(o => o.orderNumber === last.orderNumber)
-            setLastProcessedOrderIndex(idx !== -1 ? idx : -1)
-            setCurrentBatch(next)
-        }
+      if (fetchError) {
+        toast({
+          title: "Error",
+          description: "Error fetching orders: " + fetchError.message,
+          variant: "destructive",
+        })
         setIsLoading(false)
-    }, [currentBatch, orders, createBatch])
+        return
+      }
+
+      // 3. Map and store fetched orders
+      const refreshed: Order[] = (data ?? []).map((o: any) => ({
+        id: o.id,
+        orderNumber: o.order_number,
+        margherita: o.slices_margherita || 0,
+        piccante: o.slices_piccante || 0,
+        marinara: o.slices_marinara || 0,
+        status: o.status,
+      }))
+      setOrders(refreshed)
+
+      // 4. Build the next batch from the fresh data
+      const next = createBatch(0, refreshed)
+      if (next) {
+        const openOrders = refreshed.filter(o => o.status === "OPEN")
+        const last = next.orders[next.orders.length - 1]
+        const idx = openOrders.findIndex(o => o.orderNumber === last.orderNumber)
+        setLastProcessedOrderIndex(idx !== -1 ? idx : -1)
+        setCurrentBatch(next)
+      }
+
+      setIsLoading(false)
+    }, [currentBatch, createBatch, orders])
 
     const loadPreviousBatch = useCallback(async () => {
         if (!previousBatch) return
