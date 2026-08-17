@@ -1,4 +1,18 @@
-# RE - Pizza Pop-up 🍕
+# Historical Product Exploration — Pizza Pop-up 🍕
+
+> **Status: reference only — not the implementation plan.**
+>
+> This document records an earlier, broader exploration of a complete pizza-pop-up operations platform. The repository's intentionally smaller scope is authenticated slice-order entry and capacity-aware reheat batching. Inventory, full-pie ordering, baking, topping and sold-out management, configurable oven infrastructure, and operational analytics are **not implemented and not planned for this repository**. Normative language such as “must” and “should” below describes the explored product concept, not commitments or incomplete work.
+
+## Implemented repository scope
+
+- Authenticated access
+- Slice-order creation and management
+- A live POS order view
+- Reheat batching for the current fixed two-oven setup
+- Reheat batch progression and history
+
+Everything else in this document is retained only to show the product-thinking process that preceded the narrower MVP decision.
 
 ## 1. Context
 

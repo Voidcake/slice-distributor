@@ -2,7 +2,7 @@
 
 Slice Distributor is an operations tool for a fast-paced pizza pop-up. The current MVP connects a cashier-facing order queue to a reheat-station workflow, groups orders into oven batches, and keeps both views synchronized through Supabase Realtime.
 
-> **Project status:** active MVP. Order entry and reheat batching are working; inventory, bake planning, product availability, full-pie orders, and operational analytics are documented but not yet implemented. See [the engineering audit](doc/engineering-audit.md) for the prioritized roadmap.
+> **Project status:** scope-locked MVP focused on authenticated slice-order entry and reheat batching. Inventory, bake planning, product availability, full-pie orders, and operational analytics appear in an earlier product exploration, but are explicitly out of scope and are not planned features of this repository.
 
 ## Why this exists
 
@@ -34,7 +34,7 @@ Prerequisites: Node.js 22, npm, and a Supabase project.
 
    ```bash
    git clone <repository-url>
-   cd slice-distributer/slice-distributer
+   cd slice-distributor
    ```
 
 2. Install dependencies with `npm ci`.
@@ -57,9 +57,11 @@ The hardened deployment choices are documented in [`doc/container-hardening.md`]
 docker compose -f compose.hardened.yml up --build
 ```
 
-## Product scope
+## Scope
 
-The intended operational system and business rules are captured in [`doc/requirements.md`](doc/requirements.md). That document extends beyond the current MVP; the status note above and engineering audit distinguish implemented behavior from planned work.
+This repository intentionally demonstrates one focused workflow: accepting slice orders and distributing them into reheat batches. [`doc/requirements.md`](doc/requirements.md) is retained as historical product exploration. Its broader features are neither implemented nor on this project's roadmap.
+
+Remaining work is limited to reliability, tests, maintainability, accessibility, and presentation quality. See [the engineering audit](doc/engineering-audit.md).
 
 ## Author
 

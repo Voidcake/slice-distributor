@@ -10,7 +10,7 @@ server files, static assets, and `public` assets.
 docker build \
   --build-arg NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL" \
   --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_ANON_KEY" \
-  -t slice-distributer:local .
+  -t slice-distributor:local .
 ```
 
 ## Run With Hardened Defaults
