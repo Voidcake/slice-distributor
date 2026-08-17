@@ -1,12 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  BATCH_CAPACITY,
-  createBatch,
-  distributeToOvens,
-  type Order,
-} from "./orders.ts";
+import { BATCH_CAPACITY, createBatch, distributeToOvens, type Order } from "./orders.ts";
 
 function order(
   orderNumber: string,

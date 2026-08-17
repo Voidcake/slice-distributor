@@ -28,6 +28,23 @@ During service, staff need to turn a stream of slice orders into simple, capacit
 
 The browser talks directly to Supabase using the public client key. Database Row Level Security restricts order access to authenticated users; the Next.js middleware also protects all operational pages.
 
+```mermaid
+flowchart LR
+    Cashier[Cashier / POS] -->|Creates slice orders| DB[(Supabase Postgres)]
+    DB -->|Realtime changes| POS[Live order backlog]
+    DB -->|Realtime changes| Reheat[Reheat station]
+    Reheat -->|Builds FIFO batches| Ovens[Two 8-slice ovens]
+    Reheat -->|Marks batch processed| DB
+```
+
+### What this project demonstrates
+
+- Translating a time-sensitive operational workflow into a focused interface
+- Separating deterministic domain logic from React and database concerns
+- Handling concurrent order-number allocation transactionally in Postgres
+- Synchronizing multiple operator screens with Realtime events
+- Applying authentication, Row Level Security, validation, tests, CI, and hardened containers
+
 ### Permission model
 
 The MVP uses a deliberately shared operator role: every authenticated event staff member can create, update, process, and delete orders. Destructive bulk deletion requires confirmation. Fine-grained cashier and reheat-station roles are outside this repository's scope and should be added before adapting the project to an untrusted multi-tenant environment.
@@ -39,7 +56,7 @@ Prerequisites: Node.js 22, npm, and a Supabase project.
 1. Clone the repository and enter the application directory:
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Voidcake/slice-distributor.git
    cd slice-distributor
    ```
 
@@ -47,6 +64,15 @@ Prerequisites: Node.js 22, npm, and a Supabase project.
 3. Copy `.env.example` to `.env.local` and add your Supabase project values.
 4. Apply the SQL files in [`supabase/migrations`](supabase/migrations) in filename order. Enable Realtime for `public.orders` if needed.
 5. Run `npm run dev` and open [http://localhost:3000](http://localhost:3000).
+
+## Demo walkthrough
+
+1. Sign in and open the **POS** station.
+2. Create several orders with up to 16 total slices each.
+3. Open the **Reheat Station** in a second browser window.
+4. Start from the first order number and inspect the generated two-oven layout.
+5. Complete a batch and watch both stations update in real time.
+6. Use **Previous** or **Reset Reheat Station** to demonstrate recovery controls.
 
 ## Quality checks
 

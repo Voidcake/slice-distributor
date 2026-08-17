@@ -17,6 +17,7 @@ services:
         ! -name node_modules ! -name .next ! -name .git ! -name .env.local
         -exec cp -a {} /workspace/ \;
         && npm ci --ignore-scripts --audit=false --fund=false
+        && npm run format:check
         && npm test
         && npm run typecheck
         && npm run build

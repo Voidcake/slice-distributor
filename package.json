@@ -1,9 +1,19 @@
 {
   "name": "slice-distributor",
+  "description": "Realtime pizza slice order intake and capacity-aware reheat batching.",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Voidcake/slice-distributor.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "start": "next start",
     "test": "node --experimental-default-type=module --experimental-strip-types --test src/domain/orders.test.ts",
     "typecheck": "tsc --noEmit"

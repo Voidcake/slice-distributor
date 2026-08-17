@@ -1,279 +1,307 @@
-"use client"
+"use client";
 
-import type React from "react"
-import {useState} from "react"
-import {Button} from "@/components/ui/button"
+import type React from "react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger
-} from "@/components/ui/dialog"
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
-import {Input} from "@/components/ui/input"
-import {Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger} from "@/components/ui/sheet"
-import {Badge} from "@/components/ui/badge"
-import {ArrowLeftIcon, ArrowRightIcon, InfoIcon, RefreshCwIcon} from "lucide-react"
-import {PizzaChart} from "./components/pizza-chart"
-import {useOrders} from "./hooks/use-orders"
-import {PizzaLegend} from "./components/pizza-legend"
-import {useToast} from "@/hooks/use-toast"
-
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeftIcon, ArrowRightIcon, InfoIcon, RefreshCwIcon } from "lucide-react";
+import { PizzaChart } from "./components/pizza-chart";
+import { useOrders } from "./hooks/use-orders";
+import { PizzaLegend } from "./components/pizza-legend";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ReheatStation() {
-    const [inputOrderNumber, setInputOrderNumber] = useState("001")
-    const [startOrderNumber, setStartOrderNumber] = useState<string | null>("")
-    const [isInfoOpen, setIsInfoOpen] = useState(false)
-    const [isResetDialogOpen, setIsResetDialogOpen] = useState(false)
+  const [inputOrderNumber, setInputOrderNumber] = useState("001");
+  const [startOrderNumber, setStartOrderNumber] = useState<string | null>("");
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
+  const { toast } = useToast();
 
-    const {toast} = useToast()
+  const {
+    currentBatch,
+    previousBatch,
+    loadNextBatch,
+    loadPreviousBatch,
+    resetStation,
+    retryRefresh,
+    allOpenOrdersInfo,
+    isLoading,
+    hasPreviousBatch,
+  } = useOrders(startOrderNumber);
 
-    const {
-        currentBatch,
-        previousBatch,
-        loadNextBatch,
-        loadPreviousBatch,
-        resetStation,
-        retryRefresh,
-        allOpenOrdersInfo,
-        isLoading,
-        hasPreviousBatch,
-    } = useOrders(startOrderNumber)
-
-    const handleStartNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value
-        if (/^\d*$/.test(value)) {
-            setInputOrderNumber(value)
-        }
+  const handleStartNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (/^\d*$/.test(value)) {
+      setInputOrderNumber(value);
     }
+  };
 
-    const handleStartBatch = () => {
-        if (inputOrderNumber) {
-            setStartOrderNumber(inputOrderNumber.padStart(3, "0"))
-            toast({
-                title: "Started Reheating",
-                description: `Loading batch starting from order #${inputOrderNumber}`,
-            })
-        } else {
-            toast({
-                title: "Invalid Order Number",
-                description: "Please enter a valid order number to start reheating.",
-                variant: "destructive",
-            })
-        }
+  const handleStartBatch = () => {
+    if (inputOrderNumber) {
+      setStartOrderNumber(inputOrderNumber.padStart(3, "0"));
+      toast({
+        title: "Started Reheating",
+        description: `Loading batch starting from order #${inputOrderNumber}`,
+      });
+    } else {
+      toast({
+        title: "Invalid Order Number",
+        description: "Please enter a valid order number to start reheating.",
+        variant: "destructive",
+      });
     }
+  };
 
-    const handleNextBatch = async () => {
-        const completedBatch = currentBatch
-        const succeeded = await loadNextBatch()
-        if (succeeded && completedBatch) {
-            toast({
-                title: "Batch successfully reheated",
-                description: `Orders: ${completedBatch.orderNumbers.join(", ")}`,
-            })
-        }
+  const handleNextBatch = async () => {
+    const completedBatch = currentBatch;
+    const succeeded = await loadNextBatch();
+    if (succeeded && completedBatch) {
+      toast({
+        title: "Batch successfully reheated",
+        description: `Orders: ${completedBatch.orderNumbers.join(", ")}`,
+      });
     }
+  };
 
-    const handlePreviousBatch = async () => {
-        const restoredBatch = previousBatch
-        const succeeded = await loadPreviousBatch()
-        if (succeeded && restoredBatch) {
-            toast({
-                title: "Returned to previous batch",
-                description: `Orders: ${restoredBatch.orderNumbers.join(", ")}`,
-            })
-        }
+  const handlePreviousBatch = async () => {
+    const restoredBatch = previousBatch;
+    const succeeded = await loadPreviousBatch();
+    if (succeeded && restoredBatch) {
+      toast({
+        title: "Returned to previous batch",
+        description: `Orders: ${restoredBatch.orderNumbers.join(", ")}`,
+      });
     }
+  };
 
-    const handleResetConfirmation = async () => {
-        const resetSucceeded = await resetStation()
-        if (!resetSucceeded) return
+  const handleResetConfirmation = async () => {
+    const resetSucceeded = await resetStation();
+    if (!resetSucceeded) return;
 
-        setStartOrderNumber(null)
-        setIsResetDialogOpen(false)
-        toast({
-            title: "Reheat station reset",
-            description: "All orders are open. Choose a starting order to begin again.",
-        })
-    }
+    setStartOrderNumber(null);
+    setIsResetDialogOpen(false);
+    toast({
+      title: "Reheat station reset",
+      description: "All orders are open. Choose a starting order to begin again.",
+    });
+  };
 
-    return (
-        <div className="container mx-auto p-4 max-w-6xl">
-            <Card className="mb-6">
-                <CardHeader className="bg-red-500 bg-opacity-75 rounded-xl">
-                    <CardTitle className="text-2xl">Pizza Reheat Station</CardTitle>
-                    <CardDescription className="text-lg">Manage pizza batches for reheating</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                    <div className="mb-6">
-                        <div className="grid w-full grid-cols-1 gap-3 lg:grid-cols-3 lg:items-center">
-                            <div className="flex w-full gap-2">
-                                <Input
-                                    type="text"
-                                    inputMode="numeric"
-                                    placeholder="Start Order #"
-                                    value={inputOrderNumber}
-                                    onChange={handleStartNumberChange}
-                                    aria-label="Starting order number"
-                                    className="min-w-0 flex-1 lg:max-w-40"
-                                />
-                                <Button onClick={handleStartBatch} disabled={isLoading}>Start</Button>
+  return (
+    <div className="container mx-auto p-4 max-w-6xl">
+      <Card className="mb-6">
+        <CardHeader className="bg-red-500 bg-opacity-75 rounded-xl">
+          <CardTitle className="text-2xl">Pizza Reheat Station</CardTitle>
+          <CardDescription className="text-lg">Manage pizza batches for reheating</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="mb-6">
+            <div className="grid w-full grid-cols-1 gap-3 lg:grid-cols-3 lg:items-center">
+              <div className="flex w-full gap-2">
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Start Order #"
+                  value={inputOrderNumber}
+                  onChange={handleStartNumberChange}
+                  aria-label="Starting order number"
+                  className="min-w-0 flex-1 lg:max-w-40"
+                />
+                <Button onClick={handleStartBatch} disabled={isLoading}>
+                  Start
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handlePreviousBatch}
+                  disabled={
+                    isLoading || !hasPreviousBatch || currentBatch?.orderNumbers.includes("001")
+                  }
+                >
+                  <ArrowLeftIcon className="mr-2 h-4 w-4" />
+                  Previous
+                </Button>
+                <Button onClick={handleNextBatch} disabled={isLoading || !currentBatch}>
+                  Complete
+                  <ArrowRightIcon className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="flex lg:justify-end">
+                <Sheet open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="secondary" className="w-full lg:w-auto">
+                      <InfoIcon className="mr-2 h-4 w-4" />
+                      Open Orders Info
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent className="w-full overflow-y-auto sm:max-w-[540px]">
+                    <SheetHeader>
+                      <SheetTitle>All Open Orders Overview</SheetTitle>
+                      <SheetDescription>Total slice counts for all *open* orders</SheetDescription>
+                    </SheetHeader>
+                    <div className="mt-6">
+                      <div className="space-y-6">
+                        {Object.entries(allOpenOrdersInfo.totalByType).map(([type, count]) => (
+                          <div key={type} className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <h3 className="font-medium">
+                                {type.charAt(0).toUpperCase() + type.slice(1)}
+                              </h3>
+                              <Badge variant="outline">{count} slices</Badge>
                             </div>
-
-                            <div className="grid grid-cols-2 gap-2">
-                                <Button variant="outline" onClick={handlePreviousBatch}
-                                        disabled={isLoading || !hasPreviousBatch || currentBatch?.orderNumbers.includes("001")}>
-                                    <ArrowLeftIcon className="mr-2 h-4 w-4" />
-                                    Previous
-                                </Button>
-                                <Button onClick={handleNextBatch} disabled={isLoading || !currentBatch}>
-                                    Complete
-                                    <ArrowRightIcon className="ml-2 h-4 w-4" />
-                                </Button>
+                            <div className="text-sm font-medium text-right">
+                              {`${Math.floor(count / 8)} Pizzas${count % 8 ? ` + ${count % 8} Slices` : ""}`}
                             </div>
-
-                            <div className="flex lg:justify-end">
-                                <Sheet open={isInfoOpen} onOpenChange={setIsInfoOpen}>
-                                    <SheetTrigger asChild>
-                                        <Button variant="secondary" className="w-full lg:w-auto">
-                                            <InfoIcon className="mr-2 h-4 w-4"/>
-                                            Open Orders Info
-                                        </Button>
-                                    </SheetTrigger>
-                                    <SheetContent className="w-full overflow-y-auto sm:max-w-[540px]">
-                                        <SheetHeader>
-                                            <SheetTitle>All Open Orders Overview</SheetTitle>
-                                            <SheetDescription>Total slice counts for all *open* orders</SheetDescription>
-                                        </SheetHeader>
-                                        <div className="mt-6">
-                                            <div className="space-y-6">
-                                                    {Object.entries(allOpenOrdersInfo.totalByType).map(([type, count]) => (
-                                                        <div key={type} className="space-y-2">
-                                                            <div className="flex justify-between items-center">
-                                                                <h3 className="font-medium">{type.charAt(0).toUpperCase() + type.slice(1)}</h3>
-                                                                <Badge variant="outline">{count} slices</Badge>
-                                                            </div>
-                                                            <div className="text-sm font-medium text-right">
-                                                                {`${Math.floor(count / 8)} Pizzas${count % 8 ? ` + ${count % 8} Slices` : ""}`}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                    <div className="pt-4 border-t">
-                                                        <div className="flex justify-between font-medium">
-                                                            <span>Total Slices:</span>
-                                                            <span>{allOpenOrdersInfo.totalSlices}</span>
-                                                        </div>
-                                                    </div>
-                                            </div>
-                                        </div>
-                                        <div className="pt-6 border-t mt-6">
-                                            <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="destructive" disabled={isLoading} className="w-full">
-                                                        <RefreshCwIcon className="mr-2 h-4 w-4" />
-                                                        Reset Reheat Station
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogHeader>
-                                                        <DialogTitle>Reset Station</DialogTitle>
-                                                        <DialogDescription>
-                                                            Are you sure you want to reset the station? This will clear all
-                                                            batch data and set the status of all Orders to OPEN.
-                                                        </DialogDescription>
-                                                    </DialogHeader>
-                                                    <DialogFooter>
-                                                        <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>
-                                                            Cancel
-                                                        </Button>
-                                                        <Button variant="destructive" onClick={handleResetConfirmation} disabled={isLoading}>
-                                                            Confirm
-                                                        </Button>
-                                                    </DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
-                                        </div>
-                                    </SheetContent>
-                                </Sheet>
-                            </div>
+                          </div>
+                        ))}
+                        <div className="pt-4 border-t">
+                          <div className="flex justify-between font-medium">
+                            <span>Total Slices:</span>
+                            <span>{allOpenOrdersInfo.totalSlices}</span>
+                          </div>
                         </div>
+                      </div>
                     </div>
+                    <div className="pt-6 border-t mt-6">
+                      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="destructive" disabled={isLoading} className="w-full">
+                            <RefreshCwIcon className="mr-2 h-4 w-4" />
+                            Reset Reheat Station
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Reset Station</DialogTitle>
+                            <DialogDescription>
+                              Are you sure you want to reset the station? This will clear all batch
+                              data and set the status of all Orders to OPEN.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={handleResetConfirmation}
+                              disabled={isLoading}
+                            >
+                              Confirm
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
+            </div>
+          </div>
 
-                    {currentBatch ? (
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Current Batch</CardTitle>
-                                        <CardDescription>Orders: {currentBatch.orderNumbers.join(", ")}</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="space-y-4">
-                                            <h3 className="font-medium">Slice Count by Type</h3>
-                                            <div className="space-y-2">
-                                                {Object.entries(currentBatch.slicesByType).map(([type, count]) => (
-                                                    <div key={type} className="flex justify-between items-center">
-                                                        <span>{type}</span>
-                                                        <Badge variant="outline">{count} slices</Badge>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <div className="pt-2 border-t mt-4">
-                                                <div className="flex justify-between font-medium">
-                                                    <span>Total Slices:</span>
-                                                    <span>{currentBatch.totalSlices}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+          {currentBatch ? (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Current Batch</CardTitle>
+                    <CardDescription>
+                      Orders: {currentBatch.orderNumbers.join(", ")}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Slice Count by Type</h3>
+                      <div className="space-y-2">
+                        {Object.entries(currentBatch.slicesByType).map(([type, count]) => (
+                          <div key={type} className="flex justify-between items-center">
+                            <span>{type}</span>
+                            <Badge variant="outline">{count} slices</Badge>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="pt-2 border-t mt-4">
+                        <div className="flex justify-between font-medium">
+                          <span>Total Slices:</span>
+                          <span>{currentBatch.totalSlices}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Oven Layout</CardTitle>
-                                        <CardDescription>Distribution of pizzas in ovens</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <h3 className="text-center font-medium mb-2">Oven 1</h3>
-                                                <PizzaChart slicesByType={currentBatch.ovenDistribution[0]}/>
-                                            </div>
-                                            <div>
-                                                <h3 className="text-center font-medium mb-2">Oven 2</h3>
-                                                <PizzaChart slicesByType={currentBatch.ovenDistribution[1]}/>
-                                            </div>
-                                        </div>
-                                        {/* Shared legend for both ovens */}
-                                        <PizzaLegend
-                                            slicesByType={[currentBatch.ovenDistribution[0], currentBatch.ovenDistribution[1]]}/>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="py-12 text-center text-muted-foreground" role="status" aria-live="polite">
-                            {isLoading ? (
-                                <p>Loading the next batch…</p>
-                            ) : startOrderNumber ? (
-                                <div className="flex flex-col items-center gap-3">
-                                    <p>There are no open orders waiting to be reheated.</p>
-                                    <Button variant="outline" size="sm" onClick={retryRefresh}>
-                                        <RefreshCwIcon className="mr-2 h-4 w-4" />
-                                        Refresh orders
-                                    </Button>
-                                </div>
-                            ) : (
-                                <p>Enter a starting order number and select Start to begin.</p>
-                            )}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
-    )
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Oven Layout</CardTitle>
+                    <CardDescription>Distribution of pizzas in ovens</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="text-center font-medium mb-2">Oven 1</h3>
+                        <PizzaChart slicesByType={currentBatch.ovenDistribution[0]} />
+                      </div>
+                      <div>
+                        <h3 className="text-center font-medium mb-2">Oven 2</h3>
+                        <PizzaChart slicesByType={currentBatch.ovenDistribution[1]} />
+                      </div>
+                    </div>
+                    {/* Shared legend for both ovens */}
+                    <PizzaLegend
+                      slicesByType={[
+                        currentBatch.ovenDistribution[0],
+                        currentBatch.ovenDistribution[1],
+                      ]}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="py-12 text-center text-muted-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              {isLoading ? (
+                <p>Loading the next batch…</p>
+              ) : startOrderNumber ? (
+                <div className="flex flex-col items-center gap-3">
+                  <p>There are no open orders waiting to be reheated.</p>
+                  <Button variant="outline" size="sm" onClick={retryRefresh}>
+                    <RefreshCwIcon className="mr-2 h-4 w-4" />
+                    Refresh orders
+                  </Button>
+                </div>
+              ) : (
+                <p>Enter a starting order number and select Start to begin.</p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

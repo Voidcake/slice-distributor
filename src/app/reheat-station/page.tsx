@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import ReheatStation from "../reheat-station/reheat-station"
+import ReheatStation from "../reheat-station/reheat-station";
 
 export default function Page() {
-    return <ReheatStation />
+  return <ReheatStation />;
 }

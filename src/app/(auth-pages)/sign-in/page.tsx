@@ -21,19 +21,11 @@ export default async function Login(props: { searchParams: Promise<Message> }) {
         <Input name="email" placeholder="you@example.com" required />
         <div className="flex justify-between items-center">
           <Label htmlFor="password">Password</Label>
-          <Link
-            className="text-xs text-foreground underline"
-            href="/forgot-password"
-          >
+          <Link className="text-xs text-foreground underline" href="/forgot-password">
             Forgot Password?
           </Link>
         </div>
-        <Input
-          type="password"
-          name="password"
-          placeholder="Your password"
-          required
-        />
+        <Input type="password" name="password" placeholder="Your password" required />
         <SubmitButton pendingText="Signing In..." formAction={signInAction}>
           Sign in
         </SubmitButton>

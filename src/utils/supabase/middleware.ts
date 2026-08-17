@@ -4,13 +4,11 @@ import { type NextRequest, NextResponse } from "next/server";
 export const updateSession = async (request: NextRequest) => {
   const protectedRoutes = ["/dashboard", "/POS", "/reheat-station", "/protected"];
   const isProtectedRoute = protectedRoutes.some(
-    (route) => request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(`${route}/`),
+    (route) =>
+      request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(`${route}/`),
   );
 
-  // This `try/catch` block is only here for the interactive tutorial.
-  // Feel free to remove once you have Supabase connected.
   try {
-    // Create an unmodified response
     let response = NextResponse.next({
       request: {
         headers: request.headers,
@@ -26,9 +24,7 @@ export const updateSession = async (request: NextRequest) => {
             return request.cookies.getAll();
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value }) =>
-              request.cookies.set(name, value),
-            );
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
             response = NextResponse.next({
               request,
             });
@@ -40,8 +36,6 @@ export const updateSession = async (request: NextRequest) => {
       },
     );
 
-    // This will refresh session if expired - required for Server Components
-    // https://supabase.com/docs/guides/auth/server-side/nextjs
     const user = await supabase.auth.getUser();
 
     if (isProtectedRoute && user.error) {

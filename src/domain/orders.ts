@@ -79,7 +79,9 @@ export function createBatch(orders: Order[]): Batch | null {
     const orderSlices = countOrderSlices(order);
 
     if (orderSlices > BATCH_CAPACITY) {
-      throw new Error(`Order ${order.orderNumber} exceeds the ${BATCH_CAPACITY}-slice batch capacity.`);
+      throw new Error(
+        `Order ${order.orderNumber} exceeds the ${BATCH_CAPACITY}-slice batch capacity.`,
+      );
     }
 
     if (totalSlices + orderSlices > BATCH_CAPACITY) break;
