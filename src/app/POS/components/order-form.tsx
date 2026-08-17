@@ -108,12 +108,13 @@ export function OrderForm({initialData, onSuccess, isDialog = false, isEditMode}
                 router.push("/")
                 router.refresh()
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : ""
             toast({
                 title: "Error",
-                description: error?.message && error.message.includes("orders_order_number_key")
+                description: errorMessage.includes("orders_order_number_key")
                     ? "Order Number already exists!"
-                    : error?.message || `Failed to ${isEditMode ? "update" : "create"} the order.`,
+                    : errorMessage || `Failed to ${isEditMode ? "update" : "create"} the order.`,
                 variant: "destructive",
             })
         }

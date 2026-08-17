@@ -28,6 +28,10 @@ During service, staff need to turn a stream of slice orders into simple, capacit
 
 The browser talks directly to Supabase using the public client key. Database Row Level Security restricts order access to authenticated users; the Next.js middleware also protects all operational pages.
 
+### Permission model
+
+The MVP uses a deliberately shared operator role: every authenticated event staff member can create, update, process, and delete orders. Destructive bulk deletion requires confirmation. Fine-grained cashier and reheat-station roles are outside this repository's scope and should be added before adapting the project to an untrusted multi-tenant environment.
+
 ## Run locally
 
 Prerequisites: Node.js 22, npm, and a Supabase project.

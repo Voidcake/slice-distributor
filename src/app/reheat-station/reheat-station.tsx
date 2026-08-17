@@ -38,6 +38,7 @@ export default function ReheatStation() {
         loadNextBatch,
         loadPreviousBatch,
         resetStation,
+        retryRefresh,
         allOpenOrdersInfo,
         isLoading,
         hasPreviousBatch,
@@ -108,9 +109,9 @@ export default function ReheatStation() {
                     <CardDescription className="text-lg">Manage pizza batches for reheating</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
-                    <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
-                        <div className="grid grid-cols-3 items-center mb-1">
-                            <div className="flex gap-2">
+                    <div className="mb-6">
+                        <div className="grid w-full grid-cols-1 gap-3 lg:grid-cols-3 lg:items-center">
+                            <div className="flex w-full gap-2">
                                 <Input
                                     type="text"
                                     inputMode="numeric"
@@ -118,39 +119,38 @@ export default function ReheatStation() {
                                     value={inputOrderNumber}
                                     onChange={handleStartNumberChange}
                                     aria-label="Starting order number"
-                                    className="w-32"
+                                    className="min-w-0 flex-1 lg:max-w-40"
                                 />
-                                <Button onClick={handleStartBatch}>Start</Button>
+                                <Button onClick={handleStartBatch} disabled={isLoading}>Start</Button>
                             </div>
 
-                            <div className="flex justify-center gap-2">
+                            <div className="grid grid-cols-2 gap-2">
                                 <Button variant="outline" onClick={handlePreviousBatch}
-                                        disabled={!hasPreviousBatch || currentBatch?.orderNumbers.includes("001")}>
+                                        disabled={isLoading || !hasPreviousBatch || currentBatch?.orderNumbers.includes("001")}>
                                     <ArrowLeftIcon className="mr-2 h-4 w-4" />
-                                    Previous Batch
+                                    Previous
                                 </Button>
-                                <Button onClick={handleNextBatch} disabled={isLoading}>
-                                    Next Batch
+                                <Button onClick={handleNextBatch} disabled={isLoading || !currentBatch}>
+                                    Complete
                                     <ArrowRightIcon className="ml-2 h-4 w-4" />
                                 </Button>
                             </div>
 
-                            <div className="flex justify-end">
+                            <div className="flex lg:justify-end">
                                 <Sheet open={isInfoOpen} onOpenChange={setIsInfoOpen}>
                                     <SheetTrigger asChild>
-                                        <Button variant="secondary">
+                                        <Button variant="secondary" className="w-full lg:w-auto">
                                             <InfoIcon className="mr-2 h-4 w-4"/>
                                             Open Orders Info
                                         </Button>
                                     </SheetTrigger>
-                                    <SheetContent className="w-[400px] sm:w-[540px]">
+                                    <SheetContent className="w-full overflow-y-auto sm:max-w-[540px]">
                                         <SheetHeader>
                                             <SheetTitle>All Open Orders Overview</SheetTitle>
                                             <SheetDescription>Total slice counts for all *open* orders</SheetDescription>
                                         </SheetHeader>
                                         <div className="mt-6">
-                                            {allOpenOrdersInfo && (
-                                                <div className="space-y-6">
+                                            <div className="space-y-6">
                                                     {Object.entries(allOpenOrdersInfo.totalByType).map(([type, count]) => (
                                                         <div key={type} className="space-y-2">
                                                             <div className="flex justify-between items-center">
@@ -168,8 +168,7 @@ export default function ReheatStation() {
                                                             <span>{allOpenOrdersInfo.totalSlices}</span>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            )}
+                                            </div>
                                         </div>
                                         <div className="pt-6 border-t mt-6">
                                             <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
@@ -257,11 +256,19 @@ export default function ReheatStation() {
                             </div>
                         </div>
                     ) : (
-                        <div className="text-center py-12 text-muted-foreground">
+                        <div className="py-12 text-center text-muted-foreground" role="status" aria-live="polite">
                             {isLoading ? (
-                                <p>Loading batch data...</p>
+                                <p>Loading the next batch…</p>
+                            ) : startOrderNumber ? (
+                                <div className="flex flex-col items-center gap-3">
+                                    <p>There are no open orders waiting to be reheated.</p>
+                                    <Button variant="outline" size="sm" onClick={retryRefresh}>
+                                        <RefreshCwIcon className="mr-2 h-4 w-4" />
+                                        Refresh orders
+                                    </Button>
+                                </div>
                             ) : (
-                                <p>Enter a starting order number and click "Start" to begin</p>
+                                <p>Enter a starting order number and select Start to begin.</p>
                             )}
                         </div>
                     )}

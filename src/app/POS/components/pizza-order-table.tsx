@@ -1,6 +1,6 @@
 "use client"
 
-import {useEffect, useMemo, useState} from "react"
+import {useCallback, useEffect, useMemo, useState} from "react"
 import {
     type ColumnDef,
     type ColumnFiltersState,
@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import {OrderDialog} from "./order-dialog"
 import {CreateOrderButton} from "./create-order-button"
-import type {Order} from "@/domain/orders"
+import {mapOrderRow, type Order, type OrderRow} from "@/domain/orders"
 
 export type {Order} from "@/domain/orders"
 
@@ -55,7 +55,7 @@ export function PizzaOrderTable() {
 
     // Retrieve persisted state on mount.
     useEffect(() => {
-        if (typeof window !== "undefined") {
+        try {
             const storedSorting = localStorage.getItem('sortingState')
             if (storedSorting) {
                 setSorting(JSON.parse(storedSorting))
@@ -64,6 +64,9 @@ export function PizzaOrderTable() {
             if (storedFilters) {
                 setColumnFilters(JSON.parse(storedFilters))
             }
+        } catch {
+            localStorage.removeItem("sortingState")
+            localStorage.removeItem("columnFiltersState")
         }
     }, [])
 
@@ -101,80 +104,43 @@ export function PizzaOrderTable() {
         return info
     }, [data])
 
-    // ❶ subscribe to every INSERT / UPDATE / DELETE on public.orders
+    const fetchOrders = useCallback(async () => {
+        const {data: orders, error} = await supabase
+            .from("orders")
+            .select("*")
+            .order("created_at", {ascending: false})
+
+        if (error) {
+            toast({
+                title: "Unable to load orders",
+                description: error.message,
+                variant: "destructive",
+            })
+        } else {
+            setData((orders ?? []).map((order) => mapOrderRow(order as OrderRow)))
+        }
+
+        setLoading(false)
+    }, [supabase, toast])
+
     useEffect(() => {
         const channel = supabase
             .channel('orders-realtime')
             .on(
                 'postgres_changes',
                 {event: '*', schema: 'public', table: 'orders'},
-                (payload) => {
-                    // easy mode ─ just pull fresh data
-                    fetchOrders();
-
-                    /* pro mode – patch local state without a round-trip
-                    setData((prev) => {
-                      const map = (row: any): Order => ({
-                        id: row.id,
-                        orderNumber: row.order_number,
-                        margherita: row.slices_margherita,
-                        piccante: row.slices_piccante,
-                        marinara: row.slices_marinara,
-                        status: row.status,
-                      });
-
-                      switch (payload.eventType) {
-                        case 'INSERT':
-                          return [...prev, map(payload.new)];
-                        case 'UPDATE':
-                          return prev.map((o) =>
-                            o.id === payload.new.id ? map(payload.new) : o
-                          );
-                        case 'DELETE':
-                          return prev.filter((o) => o.id !== payload.old.id);
-                        default:
-                          return prev;
-                      }
-                    });
-                    */
-                }
+                () => void fetchOrders(),
             )
             .subscribe();
 
-        // ❷ tidy up when the component unmounts
         return () => {
-            supabase.removeChannel(channel);
+            void supabase.removeChannel(channel);
         };
-    }, [supabase]);
-
-
-    const fetchOrders = async () => {
-        const {data: orders, error} = await supabase.from("orders").select("*")
-
-        if (error) {
-            toast({
-                title: "Error",
-                description: "Failed to fetch orders from the database.",
-                variant: "destructive",
-            })
-        } else if (orders) {
-            const mappedOrders = orders.map((order) => ({
-                id: order.id,
-                orderNumber: order.order_number,
-                margherita: order.slices_margherita,
-                piccante: order.slices_piccante,
-                marinara: order.slices_marinara,
-                status: order.status,
-            }))
-            setData(mappedOrders)
-        }
-
-        setLoading(false)
-    }
+    }, [fetchOrders, supabase]);
 
     useEffect(() => {
         fetchOrders()
-    }, [])
+    }, [fetchOrders])
 
     const handleDeleteOrder = async (order: Order) => {
         if (!order) return
@@ -213,7 +179,6 @@ export function PizzaOrderTable() {
                 .not("id", "is", null);
 
             if (error) {
-                console.error(error)
                 toast({
                     title: "Error",
                     description: "Failed to delete all orders from the database.",
@@ -349,7 +314,7 @@ export function PizzaOrderTable() {
                                     Orders Info
                                 </Button>
                             </SheetTrigger>
-                            <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
+                            <SheetContent className="w-full overflow-y-auto sm:max-w-[540px]">
                                 <SheetHeader>
                                     <SheetTitle>Orders Overview</SheetTitle>
                                     <SheetDescription>Total slices by status</SheetDescription>
