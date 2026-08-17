@@ -3,7 +3,7 @@
 import {useCallback, useEffect, useRef, useState} from "react"
 import {useToast} from "@/hooks/use-toast"
 import {createClient} from "@/utils/supabase/client"
-import {createBatch, mapOrderRow, PIZZA_TYPES, type Batch, type OrderRow} from "@/domain/orders"
+import {createBatch, mapOrderRow, PIZZA_TYPES, type Batch, type Order, type OrderRow} from "@/domain/orders"
 
 interface OpenOrdersInfo {
     totalSlices: number
@@ -24,25 +24,43 @@ export function useOrders(startOrderNumber: string | null) {
     const prevStartOrderRef = useRef<string | null>(null)
     const {toast} = useToast()
 
+    const buildBatch = useCallback((sourceOrders: Order[]) => {
+        try {
+            return createBatch(sourceOrders)
+        } catch (error) {
+            toast({
+                title: "Cannot create reheat batch",
+                description: error instanceof Error ? error.message : "An order contains an invalid slice count.",
+                variant: "destructive",
+            })
+            return null
+        }
+    }, [toast])
+
     //Bootstrap: read any persisted batch & history on first mount
     useEffect(() => {
         if (bootstrapped) return
         setBootstrapped(true)
 
-        const storedCurrent = localStorage.getItem("reheat_currentBatch")
-        const storedPrevious = localStorage.getItem("reheat_previousBatch")
-        const storedHistory = localStorage.getItem("reheat_batchHistory")
+        try {
+            const storedCurrent = localStorage.getItem("reheat_currentBatch")
+            const storedPrevious = localStorage.getItem("reheat_previousBatch")
+            const storedHistory = localStorage.getItem("reheat_batchHistory")
 
-        if (storedCurrent) {
-            const batch = JSON.parse(storedCurrent) as Batch
-            setCurrentBatch(batch)
-            if (batch.orderNumbers.length) {
-                // take the first order number of that batch as our fallback start
-                setInitialStart(batch.orderNumbers[0])
+            if (storedCurrent) {
+                const batch = JSON.parse(storedCurrent) as Batch
+                setCurrentBatch(batch)
+                if (batch.orderNumbers.length) {
+                    setInitialStart(batch.orderNumbers[0])
+                }
             }
+            if (storedPrevious) setPreviousBatch(JSON.parse(storedPrevious))
+            if (storedHistory) setBatchHistory(JSON.parse(storedHistory))
+        } catch {
+            localStorage.removeItem("reheat_currentBatch")
+            localStorage.removeItem("reheat_previousBatch")
+            localStorage.removeItem("reheat_batchHistory")
         }
-        if (storedPrevious) setPreviousBatch(JSON.parse(storedPrevious))
-        if (storedHistory) setBatchHistory(JSON.parse(storedHistory))
     }, [bootstrapped])
 
     const allOpenOrdersInfo = useCallback((): OpenOrdersInfo => {
@@ -81,26 +99,29 @@ export function useOrders(startOrderNumber: string | null) {
                 localStorage.removeItem("reheat_batchHistory")
             }
 
-            /* always bring the DB in sync with effectiveStart */
-            await Promise.all([
-                supabase.from("orders")
-                    .update({status: "PROCESSED"})
-                    .lt("order_number", effectiveStart),
+            setIsLoading(true)
 
-                supabase.from("orders")
-                    .update({status: "OPEN"})
-                    .gte("order_number", effectiveStart),
-            ])
+            const {error: statusError} = await supabase.rpc("reset_reheat_queue", {
+                p_start_order_number: effectiveStart,
+            })
+            if (statusError) {
+                toast({
+                    title: "Unable to start reheat station",
+                    description: statusError.message,
+                    variant: "destructive",
+                })
+                setIsLoading(false)
+                return
+            }
 
             prevStartOrderRef.current = effectiveStart
 
             /* fetch fresh orders */
-            setIsLoading(true)
             const {data, error} = await supabase
                 .from("orders")
                 .select("*")
-                .gte("order_number", effectiveStart)
-                .order("order_number", {ascending: true})
+                .eq("status", "OPEN")
+                .order("created_at", {ascending: true})
 
             if (error) {
                 toast({
@@ -117,7 +138,7 @@ export function useOrders(startOrderNumber: string | null) {
             setIsLoading(false)
 
             /* always (re)build the first batch from fresh data */
-            const first = createBatch(formatted)
+            const first = buildBatch(formatted)
             if (first) {
                 setCurrentBatch(first)
             } else {
@@ -126,12 +147,14 @@ export function useOrders(startOrderNumber: string | null) {
         }
 
         fetchOrders()
-    }, [startOrderNumber, initialStart])
+    }, [startOrderNumber, initialStart, buildBatch, toast])
 
     //Persist batches whenever they change
     useEffect(() => {
         if (currentBatch) localStorage.setItem("reheat_currentBatch", JSON.stringify(currentBatch))
+        else localStorage.removeItem("reheat_currentBatch")
         if (previousBatch) localStorage.setItem("reheat_previousBatch", JSON.stringify(previousBatch))
+        else localStorage.removeItem("reheat_previousBatch")
         localStorage.setItem("reheat_batchHistory", JSON.stringify(batchHistory))
     }, [currentBatch, previousBatch, batchHistory])
 
@@ -142,9 +165,6 @@ export function useOrders(startOrderNumber: string | null) {
 
       // 1. Finalize current batch on the server
       if (currentBatch) {
-        setPreviousBatch(currentBatch)
-        setBatchHistory(prev => [...prev, currentBatch])
-
         const { error: updateError } = await supabase
           .from("orders")
           .update({ status: "PROCESSED" })
@@ -157,17 +177,19 @@ export function useOrders(startOrderNumber: string | null) {
             variant: "destructive",
           })
           setIsLoading(false)
-          return
+          return false
         }
+
+        setPreviousBatch(currentBatch)
+        setBatchHistory(prev => [...prev, currentBatch])
       }
 
       // 2. Re-fetch all orders >= the effective start so we pick up new ones
-      const effectiveStart = prevStartOrderRef.current ?? ""
       const { data, error: fetchError } = await supabase
         .from("orders")
         .select("*")
-        .gte("order_number", effectiveStart)
-        .order("order_number", { ascending: true })
+        .eq("status", "OPEN")
+        .order("created_at", { ascending: true })
 
       if (fetchError) {
         toast({
@@ -176,7 +198,7 @@ export function useOrders(startOrderNumber: string | null) {
           variant: "destructive",
         })
         setIsLoading(false)
-        return
+        return false
       }
 
       // 3. Map and store fetched orders
@@ -184,7 +206,7 @@ export function useOrders(startOrderNumber: string | null) {
       setOrders(refreshed)
 
       // 4. Build the next batch from the fresh data
-      const next = createBatch(refreshed)
+      const next = buildBatch(refreshed)
       if (next) {
         setCurrentBatch(next)
       } else {
@@ -192,11 +214,13 @@ export function useOrders(startOrderNumber: string | null) {
       }
 
       setIsLoading(false)
-    }, [currentBatch, createBatch, orders])
+      return true
+    }, [currentBatch, buildBatch, toast])
 
     const loadPreviousBatch = useCallback(async () => {
-        if (!previousBatch) return
+        if (!previousBatch) return false
 
+        setIsLoading(true)
         const supabase = createClient()
         const {error} = await supabase
             .from("orders")
@@ -209,7 +233,8 @@ export function useOrders(startOrderNumber: string | null) {
                 description: "Error updating order status: " + error.message,
                 variant: "destructive",
             })
-            return
+            setIsLoading(false)
+            return false
         }
 
         setOrders(prev =>
@@ -224,14 +249,46 @@ export function useOrders(startOrderNumber: string | null) {
         const newHistory = batchHistory.slice(0, -1)
         setBatchHistory(newHistory)
         setPreviousBatch(newHistory.length ? newHistory[newHistory.length - 1] : null)
+        setIsLoading(false)
+        return true
+    }, [previousBatch, batchHistory, toast])
 
-    }, [previousBatch, batchHistory])
+    const resetStation = useCallback(async () => {
+        setIsLoading(true)
+        const supabase = createClient()
+        const {error} = await supabase.rpc("reset_reheat_queue", {
+            p_start_order_number: "0",
+        })
+
+        if (error) {
+            toast({
+                title: "Unable to reset reheat station",
+                description: error.message,
+                variant: "destructive",
+            })
+            setIsLoading(false)
+            return false
+        }
+
+        setOrders([])
+        setCurrentBatch(null)
+        setPreviousBatch(null)
+        setBatchHistory([])
+        setInitialStart(null)
+        prevStartOrderRef.current = null
+        localStorage.removeItem("reheat_currentBatch")
+        localStorage.removeItem("reheat_previousBatch")
+        localStorage.removeItem("reheat_batchHistory")
+        setIsLoading(false)
+        return true
+    }, [toast])
 
     return {
         currentBatch,
         previousBatch,
         loadNextBatch,
         loadPreviousBatch,
+        resetStation,
         allOpenOrdersInfo: allOpenOrdersInfo(),
         isLoading,
         hasPreviousBatch: previousBatch !== null,

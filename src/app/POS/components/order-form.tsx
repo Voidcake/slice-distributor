@@ -54,6 +54,7 @@ export function OrderForm({initialData, onSuccess, isDialog = false, isEditMode}
 
     const onSubmit = async (values: FormValues) => {
         const supabase = createClient()
+        let savedOrderNumber = values.orderNumber
 
         try {
             if (isEditMode && initialData?.id) {
@@ -76,14 +77,13 @@ export function OrderForm({initialData, onSuccess, isDialog = false, isEditMode}
                     return;
                 }
             } else {
-                const result = await supabase.from("orders").insert({
-                    order_number: values.orderNumber,
-                    slices_margherita: values.margherita,
-                    slices_piccante: values.piccante,
-                    slices_marinara: values.marinara,
-                    status: values.status,
-                });
-                const error = result.error;
+                const result = await supabase.rpc("create_order", {
+                    p_slices_margherita: values.margherita,
+                    p_slices_piccante: values.piccante,
+                    p_slices_marinara: values.marinara,
+                    p_status: values.status,
+                }).single()
+                const error = result.error
                 if (error) {
                     toast({
                         title: "Error",
@@ -94,11 +94,12 @@ export function OrderForm({initialData, onSuccess, isDialog = false, isEditMode}
                     });
                     return;
                 }
+                savedOrderNumber = result.data.order_number
             }
 
             toast({
                 title: isEditMode ? "Order updated" : "Order created",
-                description: `Order ${values.orderNumber} has been ${isEditMode ? "updated" : "created"} successfully.`,
+                description: `Order ${savedOrderNumber} has been ${isEditMode ? "updated" : "created"} successfully.`,
             })
 
             if (onSuccess) {
@@ -162,9 +163,18 @@ export function OrderForm({initialData, onSuccess, isDialog = false, isEditMode}
                         <FormItem>
                             <FormLabel>Order Number</FormLabel>
                             <FormControl>
-                                <Input {...field} placeholder="Enter a unique order number" type="text" inputMode="numeric" />
+                                <Input
+                                    {...field}
+                                    placeholder="Assigned automatically"
+                                    type="text"
+                                    inputMode="numeric"
+                                    readOnly={!isEditMode}
+                                    aria-readonly={!isEditMode}
+                                />
                             </FormControl>
-                            <FormDescription>This must be a unique order number.</FormDescription>
+                            <FormDescription>
+                                {isEditMode ? "Order numbers must remain unique." : "The database assigns the final number when saved."}
+                            </FormDescription>
                             <FormMessage/>
                         </FormItem>
                     )}

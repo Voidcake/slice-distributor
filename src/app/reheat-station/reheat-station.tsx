@@ -37,6 +37,7 @@ export default function ReheatStation() {
         previousBatch,
         loadNextBatch,
         loadPreviousBatch,
+        resetStation,
         allOpenOrdersInfo,
         isLoading,
         hasPreviousBatch,
@@ -65,42 +66,37 @@ export default function ReheatStation() {
         }
     }
 
-    const handleNextBatch = () => {
-        loadNextBatch()
-        if (currentBatch) {
+    const handleNextBatch = async () => {
+        const completedBatch = currentBatch
+        const succeeded = await loadNextBatch()
+        if (succeeded && completedBatch) {
             toast({
-                title: "Batch Successfully Reheated",
-                description: `Orders: ${currentBatch.orderNumbers.join(", ")}`,
+                title: "Batch successfully reheated",
+                description: `Orders: ${completedBatch.orderNumbers.join(", ")}`,
             })
         }
     }
 
-    const handlePreviousBatch = () => {
-        loadPreviousBatch()
-        if (previousBatch) {
+    const handlePreviousBatch = async () => {
+        const restoredBatch = previousBatch
+        const succeeded = await loadPreviousBatch()
+        if (succeeded && restoredBatch) {
             toast({
-                title: "Returned to Previous Batch",
-                description: `Orders: ${previousBatch.orderNumbers.join(", ")}`,
+                title: "Returned to previous batch",
+                description: `Orders: ${restoredBatch.orderNumbers.join(", ")}`,
             })
         }
     }
 
-    const handleResetConfirmation = () => {
-        ["reheat_currentBatch", "reheat_previousBatch", "reheat_batchHistory"].forEach(key =>
-            localStorage.removeItem(key)
-        )
+    const handleResetConfirmation = async () => {
+        const resetSucceeded = await resetStation()
+        if (!resetSucceeded) return
 
         setStartOrderNumber(null)
-
-        setTimeout(() => {
-            handleStartBatch();
-        }, 5)
-
         setIsResetDialogOpen(false)
-
         toast({
-            title: "Reheat Station Reset",
-            description: "All batch data has been cleared.",
+            title: "Reheat station reset",
+            description: "All orders are open. Choose a starting order to begin again.",
         })
     }
 
@@ -195,7 +191,7 @@ export default function ReheatStation() {
                                                         <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>
                                                             Cancel
                                                         </Button>
-                                                        <Button variant="destructive" onClick={handleResetConfirmation}>
+                                                        <Button variant="destructive" onClick={handleResetConfirmation} disabled={isLoading}>
                                                             Confirm
                                                         </Button>
                                                     </DialogFooter>

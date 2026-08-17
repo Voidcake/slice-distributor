@@ -2,6 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const updateSession = async (request: NextRequest) => {
+  const protectedRoutes = ["/dashboard", "/POS", "/reheat-station", "/protected"];
+  const isProtectedRoute = protectedRoutes.some(
+    (route) => request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(`${route}/`),
+  );
+
   // This `try/catch` block is only here for the interactive tutorial.
   // Feel free to remove once you have Supabase connected.
   try {
@@ -39,11 +44,6 @@ export const updateSession = async (request: NextRequest) => {
     // https://supabase.com/docs/guides/auth/server-side/nextjs
     const user = await supabase.auth.getUser();
 
-    const protectedRoutes = ["/dashboard", "/POS", "/reheat-station", "/protected"];
-    const isProtectedRoute = protectedRoutes.some((route) =>
-      request.nextUrl.pathname.startsWith(route),
-    );
-
     if (isProtectedRoute && user.error) {
       return NextResponse.redirect(new URL("/sign-in", request.url));
     }
@@ -53,10 +53,13 @@ export const updateSession = async (request: NextRequest) => {
     }
 
     return response;
-  } catch (e) {
-    // If you are here, a Supabase client could not be created!
-    // This is likely because you have not set up environment variables.
-    // Check out http://localhost:3000 for Next Steps.
+  } catch {
+    if (isProtectedRoute) {
+      const signInUrl = new URL("/sign-in", request.url);
+      signInUrl.searchParams.set("error", "Authentication is temporarily unavailable");
+      return NextResponse.redirect(signInUrl);
+    }
+
     return NextResponse.next({
       request: {
         headers: request.headers,

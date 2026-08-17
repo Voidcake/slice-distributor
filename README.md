@@ -1,5 +1,7 @@
 # Slice Distributor
 
+[![CI](https://github.com/Voidcake/slice-distributor/actions/workflows/ci.yml/badge.svg)](https://github.com/Voidcake/slice-distributor/actions/workflows/ci.yml)
+
 Slice Distributor is an operations tool for a fast-paced pizza pop-up. The current MVP connects a cashier-facing order queue to a reheat-station workflow, groups orders into oven batches, and keeps both views synchronized through Supabase Realtime.
 
 > **Project status:** scope-locked MVP focused on authenticated slice-order entry and reheat batching. Inventory, bake planning, product availability, full-pie orders, and operational analytics appear in an earlier product exploration, but are explicitly out of scope and are not planned features of this repository.
@@ -39,12 +41,13 @@ Prerequisites: Node.js 22, npm, and a Supabase project.
 
 2. Install dependencies with `npm ci`.
 3. Copy `.env.example` to `.env.local` and add your Supabase project values.
-4. Run [`supabase/migrations/20260817000000_create_orders.sql`](supabase/migrations/20260817000000_create_orders.sql) in the Supabase SQL editor. Enable Realtime for `public.orders` if needed.
+4. Apply the SQL files in [`supabase/migrations`](supabase/migrations) in filename order. Enable Realtime for `public.orders` if needed.
 5. Run `npm run dev` and open [http://localhost:3000](http://localhost:3000).
 
 ## Quality checks
 
 ```bash
+npm test
 npm run typecheck
 npm run build
 ```
