@@ -94,7 +94,19 @@ export function OrderForm({initialData, onSuccess, isDialog = false, isEditMode}
                     });
                     return;
                 }
-                savedOrderNumber = result.data.order_number
+                if (
+                    !result.data
+                    || typeof result.data !== "object"
+                    || !("order_number" in result.data)
+                ) {
+                    toast({
+                        title: "Order created with an invalid response",
+                        description: "Refresh the order list before trying again.",
+                        variant: "destructive",
+                    })
+                    return
+                }
+                savedOrderNumber = String(result.data.order_number)
             }
 
             toast({

@@ -19,7 +19,11 @@ export const metadata = {
     metadataBase: new URL(defaultUrl),
     title: "Slice Distributor | Pizza operations",
     description: "Live pizza order intake and capacity-aware reheat batching.",
-    viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport = {
+    width: "device-width",
+    initialScale: 1,
 };
 
 const geistSans = Geist({

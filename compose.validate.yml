@@ -1,0 +1,22 @@
+services:
+  validate:
+    image: node:22-bookworm-slim
+    working_dir: /workspace
+    tmpfs:
+      - /workspace:rw,exec,size=2g
+    volumes:
+      - .:/source:ro
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: isolated-validation-key
+    entrypoint: ["/bin/sh", "-lc"]
+    command:
+      - >-
+        find /source -mindepth 1 -maxdepth 1
+        ! -name node_modules ! -name .next ! -name .git ! -name .env.local
+        -exec cp -a {} /workspace/ \;
+        && npm ci --ignore-scripts --audit=false --fund=false
+        && npm test
+        && npm run typecheck
+        && npm run build

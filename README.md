@@ -50,11 +50,21 @@ Prerequisites: Node.js 22, npm, and a Supabase project.
 
 ## Quality checks
 
+With Node.js 22:
+
 ```bash
 npm test
 npm run typecheck
 npm run build
 ```
+
+Or run the same clean pipeline without installing Node.js on the host:
+
+```bash
+docker compose -f compose.validate.yml run --rm validate
+```
+
+The validation service mounts the repository read-only, installs dependencies into a temporary in-container filesystem, disables telemetry, and removes the container when finished. Docker's downloaded base image and build cache remain managed by Docker Desktop.
 
 ## Container deployment
 
