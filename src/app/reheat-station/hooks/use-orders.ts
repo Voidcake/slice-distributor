@@ -3,23 +3,7 @@
 import {useCallback, useEffect, useRef, useState} from "react"
 import {useToast} from "@/hooks/use-toast"
 import {createClient} from "@/utils/supabase/client"
-
-interface Order {
-    id: number
-    orderNumber: string
-    margherita: number
-    piccante: number
-    marinara: number
-    status: "OPEN" | "PROCESSED"
-}
-
-interface Batch {
-    orderNumbers: string[]
-    slicesByType: Record<string, number>
-    totalSlices: number
-    ovenDistribution: [Record<string, number>, Record<string, number>]
-    orders: Order[]
-}
+import {createBatch, mapOrderRow, PIZZA_TYPES, type Batch, type OrderRow} from "@/domain/orders"
 
 interface OpenOrdersInfo {
     totalSlices: number
@@ -32,7 +16,6 @@ export function useOrders(startOrderNumber: string | null) {
     const [previousBatch, setPreviousBatch] = useState<Batch | null>(null)
     const [batchHistory, setBatchHistory] = useState<Batch[]>([])
     const [isLoading, setIsLoading] = useState(false)
-    const [lastProcessedOrderIndex, setLastProcessedOrderIndex] = useState(-1)
 
     /*  one-time bootstrap flags  */
     const [bootstrapped, setBootstrapped] = useState(false)
@@ -68,93 +51,13 @@ export function useOrders(startOrderNumber: string | null) {
         let totalSlices = 0
 
         for (const o of openOrders) {
-            totalByType.margherita += o.margherita
-            totalByType.piccante += o.piccante
-            totalByType.marinara += o.marinara
-            totalSlices += o.margherita + o.piccante + o.marinara
+            for (const type of PIZZA_TYPES) {
+                totalByType[type] += o[type]
+                totalSlices += o[type]
+            }
         }
         return {totalSlices, totalByType}
     }, [orders])
-
-    const distributeToOvens = useCallback(
-        (slicesByType: Record<string, number>): [Record<string, number>, Record<string, number>] => {
-            const oven1: Record<string, number> = {}
-            const oven2: Record<string, number> = {}
-            let oven1Count = 0, oven2Count = 0
-
-            const sorted = Object.entries(slicesByType).sort((a, b) => b[1] - a[1])
-
-            for (const [type, count] of sorted) {
-                if (count <= 8) {
-                    if (oven1Count + count <= 8) {
-                        oven1[type] = count;
-                        oven1Count += count
-                    } else if (oven2Count + count <= 8) {
-                        oven2[type] = count;
-                        oven2Count += count
-                    } else if (oven1Count < 8) {
-                        const toOven1 = Math.min(8 - oven1Count, count)
-                        oven1[type] = toOven1
-                        oven1Count += toOven1
-                        const remaining = count - toOven1
-                        if (remaining) {
-                            oven2[type] = remaining;
-                            oven2Count += remaining
-                        }
-                    } else {
-                        oven2[type] = count;
-                        oven2Count += count
-                    }
-                } else {
-                    const toOven1 = Math.min(8 - oven1Count, count)
-                    if (toOven1) {
-                        oven1[type] = toOven1;
-                        oven1Count += toOven1
-                    }
-                    const remaining = count - toOven1
-                    if (remaining) {
-                        oven2[type] = remaining;
-                        oven2Count += remaining
-                    }
-                }
-            }
-            return [oven1, oven2]
-        }, [])
-
-    const createBatch = useCallback((startIdx: number, sourceOrders?: Order[]): Batch | null => {
-        const src = sourceOrders ?? orders
-        const open = src.filter(o => o.status === "OPEN")
-        if (startIdx >= open.length) return null
-
-        const batchOrders: Order[] = []
-        const slices: Record<string, number> = {margherita: 0, piccante: 0, marinara: 0}
-        let total = 0, idx = startIdx
-
-        while (idx < open.length) {
-            const o = open[idx]
-            const sliceCount = o.margherita + o.piccante + o.marinara
-            if (total + sliceCount > 16) break
-            batchOrders.push(o)
-            slices.margherita += o.margherita
-            slices.piccante += o.piccante
-            slices.marinara += o.marinara
-            total += sliceCount
-            idx++
-        }
-        if (!batchOrders.length) return null
-
-        const ovenDistribution = distributeToOvens(slices)
-        const capitalised = Object.fromEntries(
-            Object.entries(slices).map(([k, v]) => [k.charAt(0).toUpperCase() + k.slice(1), v]),
-        )
-        return {
-            orderNumbers: batchOrders.map(o => o.orderNumber),
-            slicesByType: capitalised,
-            totalSlices: total,
-            ovenDistribution,
-            orders: batchOrders,
-        }
-    }, [orders, distributeToOvens])
 
     //Main effect: status-sync + fetch + (re)build first batch
     useEffect(() => {
@@ -209,28 +112,16 @@ export function useOrders(startOrderNumber: string | null) {
                 return
             }
 
-            const formatted: Order[] = (data ?? []).map((o: any) => ({
-                id: o.id,
-                orderNumber: o.order_number,
-                margherita: o.slices_margherita || 0,
-                piccante: o.slices_piccante || 0,
-                marinara: o.slices_marinara || 0,
-                status: o.status,
-            }))
+            const formatted = (data ?? []).map((order) => mapOrderRow(order as OrderRow))
             setOrders(formatted)
             setIsLoading(false)
 
             /* always (re)build the first batch from fresh data */
-            const first = createBatch(0, formatted)
+            const first = createBatch(formatted)
             if (first) {
                 setCurrentBatch(first)
-
-                const open = formatted.filter(o => o.status === "OPEN")
-                const last = first.orders[first.orders.length - 1]
-                const idx = open.findIndex(o => o.orderNumber === last.orderNumber)
-                setLastProcessedOrderIndex(idx !== -1 ? idx : -1)
             } else {
-                setLastProcessedOrderIndex(-1)
+                setCurrentBatch(null)
             }
         }
 
@@ -289,24 +180,15 @@ export function useOrders(startOrderNumber: string | null) {
       }
 
       // 3. Map and store fetched orders
-      const refreshed: Order[] = (data ?? []).map((o: any) => ({
-        id: o.id,
-        orderNumber: o.order_number,
-        margherita: o.slices_margherita || 0,
-        piccante: o.slices_piccante || 0,
-        marinara: o.slices_marinara || 0,
-        status: o.status,
-      }))
+      const refreshed = (data ?? []).map((order) => mapOrderRow(order as OrderRow))
       setOrders(refreshed)
 
       // 4. Build the next batch from the fresh data
-      const next = createBatch(0, refreshed)
+      const next = createBatch(refreshed)
       if (next) {
-        const openOrders = refreshed.filter(o => o.status === "OPEN")
-        const last = next.orders[next.orders.length - 1]
-        const idx = openOrders.findIndex(o => o.orderNumber === last.orderNumber)
-        setLastProcessedOrderIndex(idx !== -1 ? idx : -1)
         setCurrentBatch(next)
+      } else {
+        setCurrentBatch(null)
       }
 
       setIsLoading(false)
@@ -343,18 +225,7 @@ export function useOrders(startOrderNumber: string | null) {
         setBatchHistory(newHistory)
         setPreviousBatch(newHistory.length ? newHistory[newHistory.length - 1] : null)
 
-        if (newHistory.length) {
-            const lastBatch = newHistory[newHistory.length - 1]
-            const openOrders = orders.filter(
-                o => !previousBatch.orderNumbers.includes(o.orderNumber) && o.status === "OPEN",
-            )
-            const last = lastBatch.orders[lastBatch.orders.length - 1]
-            const idx = openOrders.findIndex(o => o.orderNumber === last.orderNumber)
-            setLastProcessedOrderIndex(idx !== -1 ? idx : -1)
-        } else {
-            setLastProcessedOrderIndex(-1)
-        }
-    }, [previousBatch, batchHistory, orders])
+    }, [previousBatch, batchHistory])
 
     return {
         currentBatch,

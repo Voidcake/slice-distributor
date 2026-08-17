@@ -8,6 +8,9 @@ create table if not exists public.orders (
   created_at timestamptz not null default now(),
   constraint orders_contain_slices check (
     slices_margherita + slices_piccante + slices_marinara > 0
+  ),
+  constraint orders_fit_reheat_batch check (
+    slices_margherita + slices_piccante + slices_marinara <= 16
   )
 );
 

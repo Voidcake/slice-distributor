@@ -33,15 +33,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import {OrderDialog} from "./order-dialog"
 import {CreateOrderButton} from "./create-order-button"
+import type {Order} from "@/domain/orders"
 
-export type Order = {
-    id: string
-    orderNumber: string
-    margherita: number
-    piccante: number
-    marinara: number
-    status: "OPEN" | "PROCESSED"
-}
+export type {Order} from "@/domain/orders"
 
 export function PizzaOrderTable() {
     const {toast} = useToast()

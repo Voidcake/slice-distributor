@@ -11,15 +11,21 @@ import {Input} from "@/components/ui/input"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
 import {useToast} from "@/hooks/use-toast"
 import {Minus, Plus} from "lucide-react"
-import type {Order} from "./pizza-order-table"
+import {BATCH_CAPACITY, type Order} from "@/domain/orders"
 
 const formSchema = z.object({
-    orderNumber: z.string().min(1, "Order number is required"),
-    margherita: z.coerce.number().min(0),
-    piccante: z.coerce.number().min(0),
-    marinara: z.coerce.number().min(0),
+    orderNumber: z.string().regex(/^\d+$/, "Use numbers only"),
+    margherita: z.coerce.number().int().min(0).max(BATCH_CAPACITY),
+    piccante: z.coerce.number().int().min(0).max(BATCH_CAPACITY),
+    marinara: z.coerce.number().int().min(0).max(BATCH_CAPACITY),
     status: z.enum(["OPEN", "PROCESSED"]),
-})
+}).refine(
+    ({margherita, piccante, marinara}) => margherita + piccante + marinara > 0,
+    {message: "Add at least one slice", path: ["marinara"]},
+).refine(
+    ({margherita, piccante, marinara}) => margherita + piccante + marinara <= BATCH_CAPACITY,
+    {message: `An order can contain at most ${BATCH_CAPACITY} slices`, path: ["marinara"]},
+)
 
 type FormValues = z.infer<typeof formSchema>
 
@@ -49,15 +55,6 @@ export function OrderForm({initialData, onSuccess, isDialog = false, isEditMode}
     const onSubmit = async (values: FormValues) => {
         const supabase = createClient()
 
-        const totalSlices = values.margherita + values.piccante + values.marinara
-        if (totalSlices === 0) {
-            toast({
-                title: "Error",
-                description: "At least one slice must be included in the order.",
-                variant: "destructive",
-            });
-            return;
-        }
         try {
             if (isEditMode && initialData?.id) {
                 const result = await supabase.from("orders").update({
@@ -141,7 +138,7 @@ export function OrderForm({initialData, onSuccess, isDialog = false, isEditMode}
                                 <Minus className="h-4 w-4"/>
                             </Button>
                             <FormControl>
-                                <Input {...field} type="number" min="0" className="w-20 text-center"/>
+                                <Input {...field} type="number" min="0" max={BATCH_CAPACITY} className="w-20 text-center"/>
                             </FormControl>
                             <Button type="button" variant="outline" size="icon"
                                     onClick={() => form.setValue(name, value + 1)}>
