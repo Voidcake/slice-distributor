@@ -56,7 +56,7 @@ export function CreateOrderButton({ onOrderCreated }: { onOrderCreated: () => vo
         initialData={
           nextOrderNumber
             ? {
-                id: "",
+                id: 0,
                 orderNumber: nextOrderNumber,
                 margherita: 0,
                 piccante: 0,

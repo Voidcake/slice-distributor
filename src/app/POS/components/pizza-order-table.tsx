@@ -52,7 +52,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { OrderDialog } from "./order-dialog";
 import { CreateOrderButton } from "./create-order-button";
-import { mapOrderRow, type Order, type OrderRow } from "@/domain/orders";
+import { mapOrderRow, type Order } from "@/domain/orders";
 
 export type { Order } from "@/domain/orders";
 
@@ -146,7 +146,7 @@ export function PizzaOrderTable() {
         variant: "destructive",
       });
     } else {
-      setData((orders ?? []).map((order) => mapOrderRow(order as OrderRow)));
+      setData((orders ?? []).map(mapOrderRow));
     }
 
     setLoading(false);

@@ -1,3 +1,5 @@
+import type { OrdersRow } from "@/types/database";
+
 export const PIZZA_TYPES = ["margherita", "piccante", "marinara"] as const;
 export const OVEN_CAPACITY = 8;
 export const BATCH_CAPACITY = OVEN_CAPACITY * 2;
@@ -6,7 +8,7 @@ export type PizzaType = (typeof PIZZA_TYPES)[number];
 export type OrderStatus = "OPEN" | "PROCESSED";
 
 export interface Order {
-  id: string | number;
+  id: number;
   orderNumber: string;
   margherita: number;
   piccante: number;
@@ -14,14 +16,7 @@ export interface Order {
   status: OrderStatus;
 }
 
-export interface OrderRow {
-  id: string | number;
-  order_number: string;
-  slices_margherita: number | null;
-  slices_piccante: number | null;
-  slices_marinara: number | null;
-  status: OrderStatus;
-}
+export type OrderRow = OrdersRow;
 
 export interface Batch {
   orderNumbers: string[];

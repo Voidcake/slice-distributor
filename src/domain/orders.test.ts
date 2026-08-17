@@ -9,7 +9,7 @@ function order(
   status: Order["status"] = "OPEN",
 ): Order {
   return {
-    id: orderNumber,
+    id: Number(orderNumber),
     orderNumber,
     margherita: 0,
     piccante: 0,

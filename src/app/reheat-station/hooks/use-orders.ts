@@ -3,14 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/utils/supabase/client";
-import {
-  createBatch,
-  mapOrderRow,
-  PIZZA_TYPES,
-  type Batch,
-  type Order,
-  type OrderRow,
-} from "@/domain/orders";
+import { createBatch, mapOrderRow, PIZZA_TYPES, type Batch, type Order } from "@/domain/orders";
 
 interface OpenOrdersInfo {
   totalSlices: number;
@@ -112,7 +105,7 @@ export function useOrders(startOrderNumber: string | null) {
       return false;
     }
 
-    const refreshed = (data ?? []).map((order) => mapOrderRow(order as OrderRow));
+    const refreshed = (data ?? []).map(mapOrderRow);
     setOrders(refreshed);
     setCurrentBatch(buildBatch(refreshed));
     return true;
