@@ -1,13 +1,13 @@
 import Link from 'next/link';
 import Logo from "@/components/logo";
 
-export default async function dashboard() {
+export default function Dashboard() {
     return (
         <div className="flex-grow flex flex-col items-center justify-center px-4 text-center py-6">
             <Logo tailwindClass="h-32"/>
-            <h1 className="text-3xl sm:text-4xl font-bold">Welcome to Slice Distributer</h1>
+            <h1 className="text-3xl sm:text-4xl font-bold">Welcome to Slice Distributor</h1>
             <p className="text-base sm:text-lg text-gray-600 mt-4">
-                You have successfully logged in. Please choose your Role/Station!
+                Choose the station you are operating.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mt-6 w-full sm:w-auto items-center">
                 <Link href="/POS">

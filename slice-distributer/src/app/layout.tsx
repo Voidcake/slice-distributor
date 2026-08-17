@@ -17,8 +17,8 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata = {
     metadataBase: new URL(defaultUrl),
-    title: "Slice Distributer",
-    description: "SliceNDice",
+    title: "Slice Distributor | Pizza operations",
+    description: "Live pizza order intake and capacity-aware reheat batching.",
     viewport: "width=device-width, initial-scale=1",
 };
 
@@ -47,7 +47,7 @@ export default function RootLayout({
                         <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
                             <div className="flex gap-5 items-center font-semibold">
                                 <Link href={"/dashboard"}> <Logo/> </Link>
-                                <Link href={"/dashboard"}>Slice Distributer</Link>
+                                <Link href={"/dashboard"}>Slice Distributor</Link>
                             </div>
                             <div className="w-full max-w-5xl flex justify-end items-center gap-4 p-3 px-5 text-sm">
                                 <ThemeSwitcher/>

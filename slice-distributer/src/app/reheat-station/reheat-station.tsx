@@ -109,7 +109,7 @@ export default function ReheatStation() {
             <Card className="mb-6">
                 <CardHeader className="bg-red-500 bg-opacity-75 rounded-xl">
                     <CardTitle className="text-2xl">Pizza Reheat Station</CardTitle>
-                    <CardDescription className="text-l">Manage pizza batches for reheating</CardDescription>
+                    <CardDescription className="text-lg">Manage pizza batches for reheating</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
                     <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
@@ -121,6 +121,7 @@ export default function ReheatStation() {
                                     placeholder="Start Order #"
                                     value={inputOrderNumber}
                                     onChange={handleStartNumberChange}
+                                    aria-label="Starting order number"
                                     className="w-32"
                                 />
                                 <Button onClick={handleStartBatch}>Start</Button>

@@ -149,8 +149,7 @@ export function PizzaOrderTable() {
 
         // ❷ tidy up when the component unmounts
         return () => {
-            supabase.removeChannel(channel);          // v2 API  [oai_citation:1‡Supabase](https://supabase.com/docs/reference/javascript/removechannel?utm_source=chatgpt.com)
-            // or: channel.unsubscribe();
+            supabase.removeChannel(channel);
         };
     }, [supabase]);
 
@@ -345,7 +344,7 @@ export function PizzaOrderTable() {
     return (
         <>
             {loading ? (
-                <div className="px-4 py-3 sm:p-6 text-centerr">Loading orders...</div>
+                <div className="px-4 py-3 text-center sm:p-6" role="status">Loading orders...</div>
             ) : (
                 <div>
                     <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-4 mb-4">

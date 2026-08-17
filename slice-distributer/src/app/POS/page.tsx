@@ -10,7 +10,7 @@ export default function POS() {
             <Card className="mb-6">
                 <CardHeader className="bg-opacity-75 bg-gray-600 rounded-xl">
                     <CardTitle className="text-2xl">Pizza POS</CardTitle>
-                    <CardDescription className="text-l">Manage Pizza Orders</CardDescription>
+                    <CardDescription className="text-lg">Manage pizza orders</CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
                     <PizzaOrderTable/>
