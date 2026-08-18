@@ -65,6 +65,20 @@ Prerequisites: Node.js 22, npm, and a Supabase project.
 4. Apply the SQL files in [`supabase/migrations`](supabase/migrations) in filename order. Enable Realtime for `public.orders` if needed.
 5. Run `npm run dev` and open [http://localhost:3000](http://localhost:3000).
 
+## Product walkthrough
+
+### Operator dashboard
+
+![Operator dashboard with POS and reheat station entry points](doc/screenshots/dashboard.webp)
+
+### Live order queue
+
+![POS order queue containing representative slice orders](doc/screenshots/pos-orders.webp)
+
+### Capacity-aware reheat batch
+
+![Reheat station distributing a FIFO order batch across two ovens](doc/screenshots/reheat-batch.webp)
+
 ## Demo walkthrough
 
 1. Sign in and open the **POS** station.
