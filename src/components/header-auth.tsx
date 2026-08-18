@@ -18,7 +18,7 @@ export default async function AuthButton() {
         <div className="flex gap-4 items-center">
           <div>
             <Badge variant={"default"} className="font-normal pointer-events-none">
-              Please update .env.local file with anon key and url
+              Add your Supabase URL and publishable key to .env.local
             </Badge>
           </div>
           <div className="flex gap-2">
