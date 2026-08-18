@@ -4,7 +4,7 @@ import Logo from "@/components/logo";
 export default function Dashboard() {
   return (
     <div className="flex-grow flex flex-col items-center justify-center px-4 text-center py-6">
-      <Logo tailwindClass="h-32" />
+      <Logo size="hero" />
       <h1 className="text-3xl sm:text-4xl font-bold">Welcome to Slice Distributor</h1>
       <p className="text-base sm:text-lg text-gray-600 mt-4">
         Choose the station you are operating.

@@ -5,7 +5,7 @@ export default async function Home() {
   return (
     <div>
       <div className="flex-grow flex flex-col items-center justify-center px-4 text-center py-6">
-        <Logo tailwindClass="h-32" />
+        <Logo size="hero" />
         <h1 className="text-3xl sm:text-4xl font-bold">Slice Distributor</h1>
         <p className="text-base sm:text-lg text-gray-600 mt-4">
           Slice Distributor turns incoming slice orders into clear, capacity-aware reheat batches.
